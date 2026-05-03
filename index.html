@@ -8,16 +8,11 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 #app{width:100%;height:100%;background:#16161A;color:#D3D1C7;}
-
-/* Login */
 #login-screen{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;}
 .login-logo{width:10px;height:10px;border-radius:50%;background:#7F77DD;}
 .login-title{font-size:24px;font-weight:500;color:#fff;}
 .login-sub{font-size:14px;color:#5F5E5A;}
 .btn-google{background:#534AB7;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;margin-top:8px;}
-.btn-google:hover{background:#3C3489;}
-
-/* Layout */
 #main-layout{display:flex;flex-direction:column;height:100%;}
 .topbar{background:#1E1E24;border-bottom:0.5px solid #2E2E38;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .topbar-logo{display:flex;align-items:center;gap:8px;}
@@ -25,110 +20,57 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .topbar-name{font-size:15px;font-weight:500;color:#fff;}
 .topbar-right{display:flex;align-items:center;gap:12px;}
 .topbar-email{font-size:12px;color:#5F5E5A;}
-.topbar-avatar{width:28px;height:28px;border-radius:50%;background:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#CECBF6;cursor:pointer;}
+.topbar-avatar{width:28px;height:28px;border-radius:50%;background:#3C3089;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#CECBF6;cursor:pointer;}
 .body-wrap{display:flex;flex:1;overflow:hidden;}
-
-/* Sidebar */
 .sidebar{width:200px;min-width:200px;background:#1E1E24;border-right:0.5px solid #2E2E38;overflow-y:auto;flex-shrink:0;padding:8px 0;}
 .nav-section{font-size:10px;color:#5F5E5A;padding:12px 16px 4px;letter-spacing:0.06em;text-transform:uppercase;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#888780;cursor:pointer;transition:background 0.1s;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#888780;cursor:pointer;}
 .nav-item:hover{background:#1a1a22;}
 .nav-item.active{background:#26215C;color:#AFA9EC;}
 .nav-dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0;}
 .nav-item.active .nav-dot{background:#7F77DD;}
-
-/* Content */
 .content{flex:1;overflow-y:auto;padding:24px 28px;}
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
 .page-title{font-size:18px;font-weight:500;color:#fff;}
 .page-sub{font-size:12px;color:#5F5E5A;margin-top:4px;}
 .btn-primary{background:#534AB7;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;}
-.btn-primary:hover{background:#3C3489;}
 .btn-secondary{background:transparent;border:0.5px solid #2E2E38;border-radius:8px;padding:9px 18px;font-size:13px;color:#888780;cursor:pointer;}
-.btn-secondary:hover{background:#1E1E24;}
-.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px;}
-.btn-xs{padding:5px 10px;font-size:11px;border-radius:6px;}
-
-/* Cards */
+.btn-sm{padding:6px 12px!important;font-size:12px!important;border-radius:7px!important;}
+.btn-xs{padding:5px 10px!important;font-size:11px!important;border-radius:6px!important;}
 .card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:16px 18px;margin-bottom:10px;}
-.card-sm{border-radius:10px;padding:12px 14px;}
-.empty-state{text-align:center;padding:48px 24px;}
-.empty-title{color:#444441;font-size:14px;}
-.empty-sub{color:#333;font-size:12px;margin-top:6px;}
-
-/* Form */
+.empty-state{text-align:center;padding:48px 24px;color:#444441;font-size:14px;}
 .form-wrap{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:24px;margin-bottom:20px;}
-.form-title{font-size:15px;font-weight:500;color:#fff;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .form-full{grid-column:1/-1;}
 .form-group{display:flex;flex-direction:column;gap:5px;}
 .form-label{font-size:12px;color:#888780;}
 .form-input{width:100%;background:#16161A;border:0.5px solid #2E2E38;border-radius:8px;padding:8px 11px;font-size:13px;color:#D3D1C7;outline:none;}
-.form-input:focus{border-color:#534AB7;}
-.form-textarea{height:72px;resize:none;}
 .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
-.btn-close{background:transparent;border:none;color:#5F5E5A;font-size:20px;cursor:pointer;line-height:1;}
-
-/* Status badges */
+.btn-close{background:transparent;border:none;color:#5F5E5A;font-size:20px;cursor:pointer;}
 .badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;}
 .badge-planejamento{background:#26215C;color:#AFA9EC;}
 .badge-andamento{background:#0F3D2E;color:#5DCAA5;}
 .badge-pausada{background:#3D3000;color:#FAC775;}
 .badge-concluida{background:#1A0A0A;color:#F09595;}
-
-/* Obra row */
-.obra-row{display:flex;align-items:center;gap:16px;}
-.obra-info{flex:1;min-width:0;}
-.obra-name{font-size:14px;font-weight:500;color:#fff;}
-.obra-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;}
-.obra-meta span{font-size:12px;color:#5F5E5A;}
-.obra-actions{display:flex;gap:8px;flex-shrink:0;}
-
-/* Detail */
 .back-btn{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:8px;padding:6px 14px;font-size:12px;color:#888780;cursor:pointer;}
-.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
 .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
 .info-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:12px 14px;}
 .info-label{font-size:11px;color:#5F5E5A;margin-bottom:4px;}
 .info-value{font-size:13px;font-weight:500;color:#D3D1C7;}
-
-/* Etapas */
 .etapa-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;overflow:hidden;margin-bottom:10px;}
-.etapa-header{padding:12px 16px;display:flex;align-items:center;gap:12px;}
-.etapa-info{flex:1;}
-.etapa-name{font-size:13px;font-weight:500;color:#fff;}
-.etapa-meta{font-size:11px;color:#5F5E5A;margin-top:2px;}
-.etapa-progress{margin-top:6px;height:3px;background:#2E2E38;border-radius:2px;overflow:hidden;}
-.etapa-progress-fill{height:100%;background:#1D9E75;border-radius:2px;transition:width 0.3s;}
-.etapa-actions{display:flex;gap:6px;}
 .tarefa-row{padding:10px 16px;display:flex;align-items:center;gap:12px;border-top:0.5px solid #2E2E38;}
 .tarefa-check{width:16px;height:16px;border-radius:4px;border:0.5px solid #444441;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 .tarefa-check.done{background:#1D9E75;border-color:#1D9E75;}
-.tarefa-text{flex:1;}
-.tarefa-name{font-size:13px;color:#D3D1C7;}
-.tarefa-name.done{color:#5F5E5A;text-decoration:line-through;}
-.tarefa-detail{display:flex;gap:10px;margin-top:2px;}
-.tarefa-detail span{font-size:11px;color:#5F5E5A;}
-.tarefa-del{background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;}
-
-/* Section sub-header */
 .sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .sub-title{font-size:14px;font-weight:500;color:#fff;}
-
-/* Dashboard stats */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
 .stat-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:14px 16px;}
-.stat-val{font-size:24px;font-weight:500;color:#fff;}
+.stat-val{font-size:22px;font-weight:500;color:#fff;}
 .stat-lbl{font-size:11px;color:#5F5E5A;margin-top:3px;}
 .stat-tag{font-size:10px;padding:2px 7px;border-radius:999px;margin-top:6px;display:inline-block;}
 .tag-ok{background:#085041;color:#9FE1CB;}
 .tag-warn{background:#633806;color:#FAC775;}
 .tag-info{background:#26215C;color:#AFA9EC;}
-
-/* WIP */
 .wip{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:48px;text-align:center;color:#444441;font-size:14px;}
-
-/* Loading */
 .loading{color:#5F5E5A;font-size:13px;padding:24px 0;}
 </style>
 </head>
@@ -142,10 +84,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   </div>
   <div id="main-layout" style="display:none;">
     <div class="topbar">
-      <div class="topbar-logo">
-        <div class="topbar-dot"></div>
-        <span class="topbar-name">ObraFácil</span>
-      </div>
+      <div class="topbar-logo"><div class="topbar-dot"></div><span class="topbar-name">ObraFácil</span></div>
       <div class="topbar-right">
         <span class="topbar-email" id="user-email"></span>
         <div class="topbar-avatar" id="user-avatar" onclick="window.doLogout()" title="Sair"></div>
@@ -172,11 +111,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, getDoc, getDocs, deleteDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAduXAqG6vRTI6STlFD3psMWkYY-DbXBr8",
@@ -187,17 +125,15 @@ const firebaseConfig = {
   appId: "1:124871692654:web:4c8a914cbcaea6167a317f"
 };
 
-const app = initializeApp(firebaseConfig, 'obra-facil');
-const auth = getAuth(app);
-const db = getFirestore(app);
+const fbApp = initializeApp(firebaseConfig, 'obra-facil');
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
 
 let currentUser = null;
-let currentPage = 'dashboard';
 let obraAberta = null;
 
-// Auth
-window.doLogin = () => signInWithPopup(auth, provider).catch(e => alert('Erro ao entrar: ' + e.message));
+window.doLogin = () => signInWithPopup(auth, provider).catch(e => alert('Erro: ' + e.message));
 window.doLogout = () => { if(confirm('Sair?')) signOut(auth); };
 
 onAuthStateChanged(auth, user => {
@@ -214,7 +150,6 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// Navigation
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -224,244 +159,121 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
-function setPage(page) {
-  currentPage = page;
-  document.querySelectorAll('.nav-item').forEach(i => {
-    i.classList.toggle('active', i.dataset.page === page);
-  });
-}
+function setPage(p) { document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page === p)); }
 
-// Helpers
 const uid = () => currentUser.uid;
 const obrasCol = () => collection(db, 'obras');
-const obraDoc = (id) => doc(db, 'obras', id);
-const etapasCol = (obraId) => collection(db, 'obras', obraId, 'etapas');
-const tarefasCol = (obraId) => collection(db, 'obras', obraId, 'tarefas');
+const obraRef = (id) => doc(db, 'obras', id);
+const sub = (obraId, name) => collection(db, 'obras', obraId, name);
+const fmtR = v => v ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v) : '—';
+const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+const SL = {planejamento:'Planejamento', andamento:'Em andamento', pausada:'Pausada', concluida:'Concluída'};
+const TIPOS = ['Residencial','Comercial','Industrial','Reforma','Outro'];
 
-const fmtCurrency = v => v ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v) : '—';
-const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
-const statusLabel = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
-
-// Render router
 async function renderPage(page) {
-  currentPage = page;
-  const content = document.getElementById('content');
-  content.innerHTML = '<div class="loading">Carregando...</div>';
-  if (page === 'dashboard') await renderDashboard();
-  else if (page === 'obras') { obraAberta ? await renderObraDetalhe() : await renderObras(); }
-  else if (page === 'financeiro') await renderFinanceiro();
-  else content.innerHTML = `<div class="wip">Módulo em construção</div>`;
+  const el = document.getElementById('content');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  if (page === 'dashboard') await pgDash();
+  else if (page === 'obras') obraAberta ? await pgDetalhe() : await pgObras();
+  else if (page === 'financeiro') await pgFin();
+  else el.innerHTML = '<div class="wip">Módulo em construção</div>';
 }
 
-
-// Helpers financeiro
-const orcamentosCol = (obraId) => collection(db,'obras',obraId,'orcamentos');
-const contasCol = (obraId) => collection(db,'obras',obraId,'contas');
-const medicoesCol = (obraId) => collection(db,'obras',obraId,'medicoes');
-
-// ==================== FINANCEIRO ====================
-async function renderFinanceiro() {
-  const q = query(obrasCol(), where('uid','==',uid()));
-  const snap = await getDocs(q);
+// ══ DASHBOARD ══
+async function pgDash() {
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  const obraSelect = obras.length === 0
-    ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra cadastrada</div></div></div>'
-    : '<div class="form-group" style="margin-bottom:20px;max-width:400px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="fin-obra-sel" onchange="window.carregarFinanceiro(this.value)"><option value="">— Selecionar obra —</option>' + obras.map(o=>'<option value="'+o.id+'">'+o.nome+'</option>').join('') + '</select></div><div id="fin-content"></div>';
-  document.getElementById('content').innerHTML = '<div class="page-header"><div><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div></div>' + obraSelect;
-}
-
-window.carregarFinanceiro = async (obraId) => {
-  if (!obraId) { document.getElementById('fin-content').innerHTML = ''; return; }
-  document.getElementById('fin-content').innerHTML = '<div class="loading">Carregando...</div>';
-  const [orcSnap, contasSnap, medSnap] = await Promise.all([
-    getDocs(orcamentosCol(obraId)),
-    getDocs(contasCol(obraId)),
-    getDocs(medicoesCol(obraId))
-  ]);
-  const orcamentos = orcSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const contas = contasSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const medicoes = medSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const totalOrcado = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
-  const totalReal = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
-  const totalPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totalReceber = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totalPago = contas.filter(c=>c.tipo==='pagar'&&c.status==='pago').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const desvio = totalReal - totalOrcado;
-  document.getElementById('fin-content').innerHTML =
-    '<div class="stats-grid" style="margin-bottom:20px;">' +
-    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalOrcado)+'</div><div class="stat-lbl">Total orçado</div></div>' +
-    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalReal)+'</div><div class="stat-lbl">Custo real</div><span class="stat-tag '+(desvio>0?'tag-warn':'tag-ok')+'">'+(desvio>0?'acima':'dentro')+' do orçamento</span></div>' +
-    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalPagar)+'</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">'+fmtCurrency(totalPago)+' pago</span></div>' +
-    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalReceber)+'</div><div class="stat-lbl">A receber</div></div>' +
-    '</div>' +
-    '<div class="sub-header"><span class="sub-title">Orçamento</span><button class="btn-primary btn-sm" onclick="window.showOrcForm('' + obraId + '')">+ Item</button></div>' +
-    '<div id="orc-form-wrap"></div>' +
-    '<div id="orc-list">' + (orcamentos.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhum item orçado</div></div></div>':orcamentos.map(o=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">'+o.descricao+'</div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+( o.categoria||'—')+'</div></div><div style="text-align:right;flex-shrink:0;"><div style="font-size:12px;color:#5F5E5A;">Previsto: '+fmtCurrency(o.valor_previsto)+'</div><div style="font-size:12px;color:'+((o.valor_real||0)>(o.valor_previsto||0)?'#F09595':'#5DCAA5')+'">Real: '+fmtCurrency(o.valor_real)+'</div></div><button onclick="window.deletarOrc('' + obraId + '','' + o.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>' +
-    '<div class="sub-header" style="margin-top:24px;"><span class="sub-title">Contas a pagar / receber</span><button class="btn-primary btn-sm" onclick="window.showContaForm('' + obraId + '')">+ Conta</button></div>' +
-    '<div id="conta-form-wrap"></div>' +
-    '<div id="conta-list">' + (contas.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma conta lançada</div></div></div>':contas.map(c=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:500;color:#fff;">'+c.descricao+'</span><span class="badge '+(c.tipo==='pagar'?'badge-pausada':'badge-andamento')+'">'+( c.tipo==='pagar'?'Pagar':'Receber')+'</span><span class="badge '+(c.status==='pago'||c.status==='recebido'?'badge-concluida':'badge-planejamento')+'">'+( c.status||'pendente')+'</span></div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+(c.fornecedor||'')+' '+(c.data_vencimento?'· Venc: '+fmtDate(c.data_vencimento):'')+'</div></div><div style="font-size:14px;font-weight:500;color:#fff;flex-shrink:0;">'+fmtCurrency(c.valor)+'</div><button onclick="window.toggleConta('' + obraId + '','' + c.id + '','' + c.tipo + '','' + (c.status||'pendente') + '')" style="background:#26215C;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#AFA9EC;cursor:pointer;">'+(c.status==='pago'||c.status==='recebido'?'Desfazer':'Marcar pago')+'</button><button onclick="window.deletarConta('' + obraId + '','' + c.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>' +
-    '<div class="sub-header" style="margin-top:24px;"><span class="sub-title">Medições</span><button class="btn-primary btn-sm" onclick="window.showMedicaoForm('' + obraId + '')">+ Medição</button></div>' +
-    '<div id="med-form-wrap"></div>' +
-    '<div id="med-list">' + (medicoes.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma medição lançada</div></div></div>':medicoes.map(m=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">Medição #'+(m.numero||'—')+'</div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+(m.data_medicao?fmtDate(m.data_medicao):'')+' '+(m.observacao?'· '+m.observacao:'')+'</div></div><span class="badge '+(m.status==='aprovada'?'badge-andamento':'badge-planejamento')+'">'+( m.status||'pendente')+'</span><div style="font-size:14px;font-weight:500;color:#fff;flex-shrink:0;">'+fmtCurrency(m.valor)+'</div><button onclick="window.deletarMedicao('' + obraId + '','' + m.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>';
-};
-
-window.showOrcForm = (obraId) => {
-  document.getElementById('orc-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Novo item de orçamento</span><button class="btn-close" onclick="document.getElementById(' orc-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="orc-desc" placeholder="Ex: Mão de obra elétrica"></div><div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="orc-cat" placeholder="Ex: Mão de obra"></div><div class="form-group"><label class="form-label">Valor previsto (R$)</label><input type="number" class="form-input" id="orc-prev" placeholder="0,00"></div><div class="form-group"><label class="form-label">Valor real (R$)</label><input type="number" class="form-input" id="orc-real" placeholder="0,00"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('orc-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarOrc('' + obraId + ')">Salvar</button></div></div>';
-};
-
-window.salvarOrc = async (obraId) => {
-  const desc = document.getElementById('orc-desc').value.trim();
-  if (!desc) return alert('Descrição obrigatória');
-  await addDoc(orcamentosCol(obraId), { descricao: desc, categoria: document.getElementById('orc-cat').value, valor_previsto: parseFloat(document.getElementById('orc-prev').value)||0, valor_real: parseFloat(document.getElementById('orc-real').value)||0, created_at: serverTimestamp() });
-  window.carregarFinanceiro(obraId);
-};
-window.deletarOrc = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'orcamentos',id)); window.carregarFinanceiro(obraId); };
-
-window.showContaForm = (obraId) => {
-  document.getElementById('conta-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Nova conta</span><button class="btn-close" onclick="document.getElementById('conta-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="ct-desc" placeholder="Ex: Compra de materiais"></div><div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ct-tipo"><option value="pagar">A pagar</option><option value="receber">A receber</option></select></div><div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="ct-valor" placeholder="0,00"></div><div class="form-group"><label class="form-label">Vencimento</label><input type="date" class="form-input" id="ct-venc"></div><div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="ct-forn" placeholder="Nome"></div><div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="ct-cat" placeholder="Ex: Material"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('conta-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarConta('' + obraId + ')">Salvar</button></div></div>';
-};
-
-window.salvarConta = async (obraId) => {
-  const desc = document.getElementById('ct-desc').value.trim();
-  if (!desc) return alert('Descrição obrigatória');
-  await addDoc(contasCol(obraId), { descricao: desc, tipo: document.getElementById('ct-tipo').value, valor: parseFloat(document.getElementById('ct-valor').value)||0, data_vencimento: document.getElementById('ct-venc').value, fornecedor: document.getElementById('ct-forn').value, categoria: document.getElementById('ct-cat').value, status: 'pendente', created_at: serverTimestamp() });
-  window.carregarFinanceiro(obraId);
-};
-window.toggleConta = async (obraId, id, tipo, status) => { const novoStatus = (status==='pago'||status==='recebido') ? 'pendente' : (tipo==='pagar'?'pago':'recebido'); await updateDoc(doc(db,'obras',obraId,'contas',id), { status: novoStatus }); window.carregarFinanceiro(obraId); };
-window.deletarConta = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'contas',id)); window.carregarFinanceiro(obraId); };
-
-window.showMedicaoForm = (obraId) => {
-  document.getElementById('med-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Nova medição</span><button class="btn-close" onclick="document.getElementById('med-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group"><label class="form-label">Número</label><input type="number" class="form-input" id="med-num" placeholder="1"></div><div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="med-data"></div><div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="med-val" placeholder="0,00"></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="med-status"><option value="pendente">Pendente</option><option value="aprovada">Aprovada</option></select></div><div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="med-obs" placeholder="Observações"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('med-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarMedicao('' + obraId + ')">Salvar</button></div></div>';
-};
-
-window.salvarMedicao = async (obraId) => {
-  await addDoc(medicoesCol(obraId), { numero: parseInt(document.getElementById('med-num').value)||1, data_medicao: document.getElementById('med-data').value, valor: parseFloat(document.getElementById('med-val').value)||0, status: document.getElementById('med-status').value, observacao: document.getElementById('med-obs').value, created_at: serverTimestamp() });
-  window.carregarFinanceiro(obraId);
-};
-window.deletarMedicao = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'medicoes',id)); window.carregarFinanceiro(obraId); };
-
-// ==================== DASHBOARD ====================
-async function renderDashboard() {
-  const q = query(obrasCol(), where('uid','==',uid()));
-  const snap = await getDocs(q);
-  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  const total = obras.length;
-  const emAndamento = obras.filter(o => o.status === 'andamento').length;
-  const atrasadas = obras.filter(o => o.status === 'andamento' && o.data_prevista_fim && new Date(o.data_prevista_fim) < new Date()).length;
-  const totalOrcado = obras.reduce((s,o) => s + (parseFloat(o.valor_orcado)||0), 0);
-
+  const totOrc = obras.reduce((s,o) => s+(parseFloat(o.valor_orcado)||0), 0);
+  const emAnd = obras.filter(o => o.status==='andamento').length;
+  const atras = obras.filter(o => o.status==='andamento' && o.data_prevista_fim && new Date(o.data_prevista_fim) < new Date()).length;
   const recentes = obras.slice(0,3);
-
-  document.getElementById('content').innerHTML = `
-    <div class="page-header"><div><div class="page-title">Dashboard</div><div class="page-sub">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div></div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">Obras cadastradas</div><span class="stat-tag tag-info">${emAndamento} em andamento</span></div>
-      <div class="stat-card"><div class="stat-val">${fmtCurrency(totalOrcado)}</div><div class="stat-lbl">Total orçado</div><span class="stat-tag tag-info">todas as obras</span></div>
-      <div class="stat-card"><div class="stat-val">${atrasadas}</div><div class="stat-lbl">Atrasadas</div><span class="stat-tag ${atrasadas>0?'tag-warn':'tag-ok'}">${atrasadas>0?'requer atenção':'em dia'}</span></div>
-    </div>
-    <div class="sub-header"><span class="sub-title">Obras recentes</span><span style="font-size:12px;color:#7F77DD;cursor:pointer;" onclick="window.goObras()">Ver todas</span></div>
-    ${recentes.length === 0 ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra ainda</div></div></div>' :
-      recentes.map(o => `
-        <div class="card obra-row" style="cursor:pointer;" onclick="window.abrirObra('${o.id}')">
-          <div class="obra-info">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-              <span class="obra-name">${o.nome}</span>
-              <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
-            </div>
-            <div class="obra-meta">
-              ${o.nome_cliente?`<span>Cliente: ${o.nome_cliente}</span>`:''}
-              ${o.tipo?`<span>${o.tipo}</span>`:''}
-              ${o.data_prevista_fim?`<span>Término: ${fmtDate(o.data_prevista_fim)}</span>`:''}
-            </div>
-          </div>
-        </div>`).join('')}
-  `;
+  let html = `<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val">${obras.length}</div><div class="stat-lbl">Obras cadastradas</div><span class="stat-tag tag-info">${emAnd} em andamento</span></div>
+    <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Total orçado</div></div>
+    <div class="stat-card"><div class="stat-val">${atras}</div><div class="stat-lbl">Atrasadas</div><span class="stat-tag ${atras>0?'tag-warn':'tag-ok'}">${atras>0?'atenção':'em dia'}</span></div>
+  </div>
+  <div class="sub-header"><span class="sub-title">Obras recentes</span><span style="font-size:12px;color:#7F77DD;cursor:pointer;" onclick="window.goObras()">Ver todas</span></div>`;
+  if (!recentes.length) html += '<div class="card"><div class="empty-state">Nenhuma obra ainda</div></div>';
+  else recentes.forEach(o => {
+    html += `<div class="card" style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="window.abrirObra('${o.id}')">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span style="font-size:14px;font-weight:500;color:#fff;">${o.nome}</span><span class="badge badge-${o.status}">${SL[o.status]||o.status}</span></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          ${o.nome_cliente?`<span style="font-size:12px;color:#5F5E5A;">Cliente: ${o.nome_cliente}</span>`:''}
+          ${o.data_prevista_fim?`<span style="font-size:12px;color:#5F5E5A;">Término: ${fmtD(o.data_prevista_fim)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content').innerHTML = html;
 }
+window.goObras = () => { setPage('obras'); obraAberta=null; renderPage('obras'); };
 
-window.goObras = () => {
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page==='obras'));
-  obraAberta = null;
-  renderPage('obras');
-};
-
-// ==================== OBRAS ====================
-async function renderObras() {
+// ══ OBRAS ══
+async function pgObras() {
   setPage('obras');
-  const q = query(obrasCol(), where('uid','==',uid()));
-  const snap = await getDocs(q);
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.created_at?.seconds||0)-(a.created_at?.seconds||0));
-
-  document.getElementById('content').innerHTML = `
-    <div class="page-header">
-      <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
-      <button class="btn-primary" onclick="window.showObraForm()">+ Nova obra</button>
-    </div>
-    <div id="obra-form-wrap"></div>
-    <div id="obras-list">
-      ${obras.length===0 ? `<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra cadastrada ainda</div><div class="empty-sub">Clique em "+ Nova obra" para começar</div></div></div>` :
-        obras.map(o => `
-          <div class="card obra-row">
-            <div class="obra-info">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                <span class="obra-name">${o.nome}</span>
-                <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
-              </div>
-              <div class="obra-meta">
-                ${o.nome_cliente?`<span>Cliente: ${o.nome_cliente}</span>`:''}
-                ${o.tipo?`<span>${o.tipo}</span>`:''}
-                ${o.data_prevista_fim?`<span>Término: ${fmtDate(o.data_prevista_fim)}</span>`:''}
-                ${o.valor_orcado?`<span>${fmtCurrency(o.valor_orcado)}</span>`:''}
-              </div>
-            </div>
-            <div class="obra-actions">
-              <button class="btn-primary btn-sm" onclick="window.abrirObra('${o.id}')">Ver</button>
-              <button class="btn-secondary btn-sm" onclick="window.deletarObra('${o.id}')">Excluir</button>
-            </div>
-          </div>`).join('')}
-    </div>
-  `;
+  let html = `<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+    <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
+    <button class="btn-primary" onclick="window.showObraForm()">+ Nova obra</button>
+  </div>
+  <div id="obra-form-wrap"></div>
+  <div id="obras-list">`;
+  if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada<br><small style="color:#333;margin-top:6px;display:block;">Clique em "+ Nova obra" para começar</small></div></div>';
+  else obras.forEach(o => {
+    html += `<div class="card" style="display:flex;align-items:center;gap:16px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span style="font-size:14px;font-weight:500;color:#fff;">${o.nome}</span><span class="badge badge-${o.status}">${SL[o.status]||o.status}</span></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          ${o.nome_cliente?`<span style="font-size:12px;color:#5F5E5A;">Cliente: ${o.nome_cliente}</span>`:''}
+          ${o.tipo?`<span style="font-size:12px;color:#5F5E5A;">${o.tipo}</span>`:''}
+          ${o.data_prevista_fim?`<span style="font-size:12px;color:#5F5E5A;">Término: ${fmtD(o.data_prevista_fim)}</span>`:''}
+          ${o.valor_orcado?`<span style="font-size:12px;color:#5F5E5A;">${fmtR(o.valor_orcado)}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn-primary btn-sm" onclick="window.abrirObra('${o.id}')">Ver</button>
+        <button class="btn-secondary btn-sm" onclick="window.deletarObra('${o.id}')">Excluir</button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
 }
 
-window.showObraForm = (dados={}) => {
-  const edit = !!dados.id;
-  document.getElementById('obra-form-wrap').innerHTML = `
-    <div class="form-wrap">
-      <div class="form-title"><span>${edit?'Editar obra':'Nova obra'}</span><button class="btn-close" onclick="document.getElementById('obra-form-wrap').innerHTML=''">×</button></div>
-      <div class="form-grid">
-        <div class="form-group form-full"><label class="form-label">Nome da obra *</label><input class="form-input" id="of-nome" value="${dados.nome||''}" placeholder="Ex: Residência Silva — Moema"></div>
-        <div class="form-group"><label class="form-label">Tipo</label>
-          <select class="form-input" id="of-tipo">
-            <option value="">Selecionar</option>
-            ${['Residencial','Comercial','Industrial','Reforma','Outro'].map(t=>`<option value="${t}" ${dados.tipo===t?'selected':''}>${t}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Status</label>
-          <select class="form-input" id="of-status">
-            ${Object.entries(statusLabel).map(([k,v])=>`<option value="${k}" ${(dados.status||'planejamento')===k?'selected':''}>${v}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="of-inicio" value="${dados.data_inicio||''}"></div>
-        <div class="form-group"><label class="form-label">Previsão de término</label><input type="date" class="form-input" id="of-fim" value="${dados.data_prevista_fim||''}"></div>
-        <div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="of-cliente" value="${dados.nome_cliente||''}" placeholder="Nome completo"></div>
-        <div class="form-group"><label class="form-label">Contato do cliente</label><input class="form-input" id="of-contato" value="${dados.contato_cliente||''}" placeholder="(11) 99999-9999"></div>
-        <div class="form-group"><label class="form-label">Valor orçado (R$)</label><input type="number" class="form-input" id="of-valor" value="${dados.valor_orcado||''}" placeholder="0,00"></div>
-        <div class="form-group"><label class="form-label">Responsável técnico</label><input class="form-input" id="of-resp" value="${dados.responsavel_tecnico||''}" placeholder="Nome do responsável"></div>
-        <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="of-end" value="${dados.endereco||''}" placeholder="Rua, número, bairro, cidade — UF"></div>
-        <div class="form-group form-full"><label class="form-label">Descrição</label><textarea class="form-input form-textarea" id="of-desc" placeholder="Descrição da obra...">${dados.descricao||''}</textarea></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn-secondary" onclick="document.getElementById('obra-form-wrap').innerHTML=''">Cancelar</button>
-        <button class="btn-primary" onclick="window.salvarObra('${dados.id||''}')">Salvar obra</button>
-      </div>
+function obraFormHTML(dados, titulo, onSave) {
+  const d = dados || {};
+  return `<div class="form-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span style="font-size:15px;font-weight:500;color:#fff;">${titulo}</span>
+      <button class="btn-close" onclick="document.getElementById('obra-form-wrap').innerHTML=''">×</button>
     </div>
-  `;
-};
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome da obra *</label><input class="form-input" id="of-nome" value="${d.nome||''}" placeholder="Ex: Residência Silva"></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="of-tipo"><option value="">Selecionar</option>${TIPOS.map(t=>`<option value="${t}"${d.tipo===t?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-input" id="of-status">${Object.entries(SL).map(([k,v])=>`<option value="${k}"${(d.status||'planejamento')===k?' selected':''}>${v}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="of-inicio" value="${d.data_inicio||''}"></div>
+      <div class="form-group"><label class="form-label">Previsão de término</label><input type="date" class="form-input" id="of-fim" value="${d.data_prevista_fim||''}"></div>
+      <div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="of-cliente" value="${d.nome_cliente||''}" placeholder="Nome completo"></div>
+      <div class="form-group"><label class="form-label">Contato do cliente</label><input class="form-input" id="of-contato" value="${d.contato_cliente||''}" placeholder="(11) 99999-9999"></div>
+      <div class="form-group"><label class="form-label">Valor orçado (R$)</label><input type="number" class="form-input" id="of-valor" value="${d.valor_orcado||''}" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Responsável técnico</label><input class="form-input" id="of-resp" value="${d.responsavel_tecnico||''}" placeholder="Nome"></div>
+      <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="of-end" value="${d.endereco||''}" placeholder="Rua, número, bairro, cidade"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="document.getElementById('obra-form-wrap').innerHTML=''">Cancelar</button>
+      <button class="btn-primary" onclick="${onSave}">Salvar obra</button>
+    </div>
+  </div>`;
+}
 
-window.salvarObra = async (id) => {
-  const nome = document.getElementById('of-nome').value.trim();
-  if (!nome) return alert('Nome da obra é obrigatório');
-  const dados = {
-    nome, uid: uid(),
+function getObraForm() {
+  return {
+    nome: document.getElementById('of-nome').value.trim(),
     tipo: document.getElementById('of-tipo').value,
     status: document.getElementById('of-status').value,
     data_inicio: document.getElementById('of-inicio').value,
@@ -471,244 +283,322 @@ window.salvarObra = async (id) => {
     valor_orcado: parseFloat(document.getElementById('of-valor').value)||null,
     responsavel_tecnico: document.getElementById('of-resp').value,
     endereco: document.getElementById('of-end').value,
-    descricao: document.getElementById('of-desc').value,
-    created_at: serverTimestamp()
   };
-  if (id) { await updateDoc(obraDoc(id), dados); }
-  else { await addDoc(obrasCol(), dados); }
-  await renderObras();
+}
+
+window.showObraForm = () => {
+  document.getElementById('obra-form-wrap').innerHTML = obraFormHTML(null, 'Nova obra', 'window.salvarObra()');
+};
+
+window.salvarObra = async () => {
+  const d = getObraForm();
+  if (!d.nome) return alert('Nome obrigatório');
+  await addDoc(obrasCol(), {...d, uid: uid(), created_at: serverTimestamp()});
+  await pgObras();
 };
 
 window.deletarObra = async (id) => {
   if (!confirm('Excluir esta obra?')) return;
-  await deleteDoc(obraDoc(id));
-  await renderObras();
+  await deleteDoc(obraRef(id));
+  await pgObras();
 };
 
-// ==================== OBRA DETALHE ====================
 window.abrirObra = async (id) => {
-  const snap = await getDoc(obraDoc(id));
+  const snap = await getDoc(obraRef(id));
   obraAberta = {id, ...snap.data()};
   setPage('obras');
-  await renderObraDetalhe();
+  await pgDetalhe();
 };
 
-async function renderObraDetalhe() {
+// ══ OBRA DETALHE ══
+async function pgDetalhe() {
   const o = obraAberta;
-  const etapasSnap = await getDocs(query(etapasCol(o.id), orderBy('ordem')));
-  const tarefasSnap = await getDocs(tarefasCol(o.id));
-  const etapas = etapasSnap.docs.map(d => ({id:d.id,...d.data()}));
-  const tarefas = tarefasSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const [etSnap, tSnap] = await Promise.all([
+    getDocs(query(sub(o.id,'etapas'), orderBy('ordem'))),
+    getDocs(sub(o.id,'tarefas'))
+  ]);
+  const etapas = etSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const tarefas = tSnap.docs.map(d => ({id:d.id,...d.data()}));
 
-  document.getElementById('content').innerHTML = `
-    <div class="detail-header">
-      <button class="back-btn" onclick="window.voltarObras()">← Voltar</button>
-      <span class="page-title">${o.nome}</span>
-      <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
-      <button class="btn-secondary btn-sm" onclick="window.editarObra()">Editar</button>
-    </div>
-    <div id="obra-edit-form"></div>
-    <div class="info-grid">
-      ${[['Cliente',o.nome_cliente||'—'],['Tipo',o.tipo||'—'],['Início',fmtDate(o.data_inicio)],['Previsão fim',fmtDate(o.data_prevista_fim)],['Orçamento',fmtCurrency(o.valor_orcado)],['Responsável',o.responsavel_tecnico||'—']].map(([l,v])=>`
-        <div class="info-card"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('')}
-    </div>
-    ${o.endereco?`<div class="card card-sm" style="margin-bottom:10px;"><div class="info-label">Endereço</div><div style="font-size:13px;color:#D3D1C7;margin-top:4px;">${o.endereco}</div></div>`:''}
-    ${o.descricao?`<div class="card card-sm" style="margin-bottom:16px;"><div class="info-label">Descrição</div><div style="font-size:13px;color:#D3D1C7;margin-top:4px;">${o.descricao}</div></div>`:''}
+  let html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+    <button class="back-btn" onclick="window.voltarObras()">← Voltar</button>
+    <span class="page-title">${o.nome}</span>
+    <span class="badge badge-${o.status}">${SL[o.status]||o.status}</span>
+    <button class="btn-secondary btn-sm" onclick="window.editarObra()">Editar</button>
+  </div>
+  <div id="obra-form-wrap"></div>
+  <div class="info-grid">
+    ${[['Cliente',o.nome_cliente||'—'],['Tipo',o.tipo||'—'],['Início',fmtD(o.data_inicio)],['Previsão fim',fmtD(o.data_prevista_fim)],['Orçamento',fmtR(o.valor_orcado)],['Responsável',o.responsavel_tecnico||'—']].map(([l,v])=>`<div class="info-card"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('')}
+  </div>
+  ${o.endereco?`<div class="card" style="padding:12px 14px;margin-bottom:16px;"><div class="info-label">Endereço</div><div style="font-size:13px;color:#D3D1C7;margin-top:4px;">${o.endereco}</div></div>`:''}
+  <div class="sub-header"><span class="sub-title">Etapas e tarefas</span><button class="btn-primary btn-sm" onclick="window.showEtapaForm()">+ Nova etapa</button></div>
+  <div id="etapa-form-wrap"></div>
+  <div id="etapas-list">`;
 
-    <div class="sub-header">
-      <span class="sub-title">Etapas e tarefas</span>
-      <button class="btn-primary btn-sm" onclick="window.showEtapaForm()">+ Nova etapa</button>
-    </div>
-    <div id="etapa-form-wrap"></div>
-    <div id="etapas-list">
-      ${etapas.length===0 ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma etapa cadastrada</div></div></div>' :
-        etapas.map(et => {
-          const ets = tarefas.filter(t => t.etapa_id === et.id);
-          const done = ets.filter(t => t.status==='concluida').length;
-          const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
-          return `
-            <div class="etapa-card" id="etapa-${et.id}">
-              <div class="etapa-header">
-                <div class="etapa-info">
-                  <div class="etapa-name">${et.nome}</div>
-                  <div class="etapa-meta">${ets.length?`${done}/${ets.length} tarefas · ${pct}%`:'Sem tarefas'}${et.data_prevista_fim?` · Fim: ${fmtDate(et.data_prevista_fim)}`:''}</div>
-                  ${ets.length?`<div class="etapa-progress"><div class="etapa-progress-fill" style="width:${pct}%"></div></div>`:''}
-                </div>
-                <div class="etapa-actions">
-                  <button class="btn-primary btn-xs" onclick="window.showTarefaForm('${et.id}')">+ Tarefa</button>
-                  <button class="btn-secondary btn-xs" onclick="window.deletarEtapa('${et.id}')">Excluir</button>
-                </div>
-              </div>
-              <div id="tarefa-form-${et.id}"></div>
-              ${ets.map(t => `
-                <div class="tarefa-row">
-                  <div class="tarefa-check ${t.status==='concluida'?'done':''}" onclick="window.toggleTarefa('${t.id}','${t.status}')">
-                    ${t.status==='concluida'?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-                  </div>
-                  <div class="tarefa-text">
-                    <div class="tarefa-name ${t.status==='concluida'?'done':''}">${t.nome}</div>
-                    <div class="tarefa-detail">
-                      ${t.responsavel?`<span>${t.responsavel}</span>`:''}
-                      ${t.data_prevista?`<span>${fmtDate(t.data_prevista)}</span>`:''}
-                      ${t.prioridade&&t.prioridade!=='normal'?`<span style="color:${t.prioridade==='urgente'?'#F09595':'#FAC775'}">${t.prioridade}</span>`:''}
-                    </div>
-                  </div>
-                  <button class="tarefa-del" onclick="window.deletarTarefa('${t.id}')">×</button>
-                </div>`).join('')}
-            </div>`;
-        }).join('')}
-    </div>
-  `;
+  if (!etapas.length) html += '<div class="card"><div class="empty-state">Nenhuma etapa cadastrada</div></div>';
+  else etapas.forEach(et => {
+    const ets = tarefas.filter(t => t.etapa_id===et.id);
+    const done = ets.filter(t => t.status==='concluida').length;
+    const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
+    html += `<div class="etapa-card">
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;color:#fff;">${et.nome}</div>
+          <div style="font-size:11px;color:#5F5E5A;margin-top:2px;">${ets.length?`${done}/${ets.length} tarefas · ${pct}%`:'Sem tarefas'}${et.data_prevista_fim?` · Fim: ${fmtD(et.data_prevista_fim)}`:''}</div>
+          ${ets.length?`<div style="margin-top:6px;height:3px;background:#2E2E38;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#1D9E75;border-radius:2px;"></div></div>`:''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-primary btn-xs" onclick="window.showTarefaForm('${et.id}')">+ Tarefa</button>
+          <button class="btn-secondary btn-xs" onclick="window.delEtapa('${et.id}')">Excluir</button>
+        </div>
+      </div>
+      <div id="tf-form-${et.id}"></div>`;
+    ets.forEach(t => {
+      html += `<div class="tarefa-row">
+        <div class="tarefa-check ${t.status==='concluida'?'done':''}" onclick="window.togTarefa('${t.id}','${t.status}')">
+          ${t.status==='concluida'?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:13px;color:${t.status==='concluida'?'#5F5E5A':'#D3D1C7'};text-decoration:${t.status==='concluida'?'line-through':'none'};">${t.nome}</div>
+          <div style="display:flex;gap:10px;margin-top:2px;">
+            ${t.responsavel?`<span style="font-size:11px;color:#5F5E5A;">${t.responsavel}</span>`:''}
+            ${t.data_prevista?`<span style="font-size:11px;color:#5F5E5A;">${fmtD(t.data_prevista)}</span>`:''}
+            ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
+          </div>
+        </div>
+        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
 }
 
-window.voltarObras = () => { obraAberta = null; renderPage('obras'); };
+window.voltarObras = () => { obraAberta=null; renderPage('obras'); };
 
 window.editarObra = () => {
-  const wrap = document.getElementById('obra-edit-form');
-  if (!wrap) return;
-  const o = obraAberta;
-  wrap.innerHTML = `
-    <div class="form-wrap" style="margin-bottom:20px;">
-      <div class="form-title"><span>Editar obra</span><button class="btn-close" onclick="document.getElementById('obra-edit-form').innerHTML=''">×</button></div>
-      <div class="form-grid">
-        <div class="form-group form-full"><label class="form-label">Nome da obra *</label><input class="form-input" id="of-nome" value="${o.nome||''}"></div>
-        <div class="form-group"><label class="form-label">Tipo</label>
-          <select class="form-input" id="of-tipo">
-            <option value="">Selecionar</option>
-            ${['Residencial','Comercial','Industrial','Reforma','Outro'].map(t=>`<option value="${t}" ${o.tipo===t?'selected':''}>${t}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Status</label>
-          <select class="form-input" id="of-status">
-            ${Object.entries(statusLabel).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="of-inicio" value="${o.data_inicio||''}"></div>
-        <div class="form-group"><label class="form-label">Previsão de término</label><input type="date" class="form-input" id="of-fim" value="${o.data_prevista_fim||''}"></div>
-        <div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="of-cliente" value="${o.nome_cliente||''}"></div>
-        <div class="form-group"><label class="form-label">Contato do cliente</label><input class="form-input" id="of-contato" value="${o.contato_cliente||''}"></div>
-        <div class="form-group"><label class="form-label">Valor orçado (R$)</label><input type="number" class="form-input" id="of-valor" value="${o.valor_orcado||''}"></div>
-        <div class="form-group"><label class="form-label">Responsável técnico</label><input class="form-input" id="of-resp" value="${o.responsavel_tecnico||''}"></div>
-        <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="of-end" value="${o.endereco||''}"></div>
-        <div class="form-group form-full"><label class="form-label">Descrição</label><textarea class="form-input form-textarea" id="of-desc">${o.descricao||''}</textarea></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn-secondary" onclick="document.getElementById('obra-edit-form').innerHTML=''">Cancelar</button>
-        <button class="btn-primary" onclick="window.salvarEdicaoObra()">Salvar alterações</button>
-      </div>
-    </div>
-  `;
+  document.getElementById('obra-form-wrap').innerHTML = obraFormHTML(obraAberta, 'Editar obra', 'window.salvarEdicao()');
 };
 
-window.salvarEdicaoObra = async () => {
-  const nome = document.getElementById('of-nome').value.trim();
-  if (!nome) return alert('Nome da obra é obrigatório');
-  const dados = {
-    nome,
-    tipo: document.getElementById('of-tipo').value,
-    status: document.getElementById('of-status').value,
-    data_inicio: document.getElementById('of-inicio').value,
-    data_prevista_fim: document.getElementById('of-fim').value,
-    nome_cliente: document.getElementById('of-cliente').value,
-    contato_cliente: document.getElementById('of-contato').value,
-    valor_orcado: parseFloat(document.getElementById('of-valor').value)||null,
-    responsavel_tecnico: document.getElementById('of-resp').value,
-    endereco: document.getElementById('of-end').value,
-    descricao: document.getElementById('of-desc').value,
-  };
-  await updateDoc(obraDoc(obraAberta.id), dados);
-  obraAberta = {...obraAberta, ...dados};
-  await renderObraDetalhe();
+window.salvarEdicao = async () => {
+  const d = getObraForm();
+  if (!d.nome) return alert('Nome obrigatório');
+  await updateDoc(obraRef(obraAberta.id), d);
+  obraAberta = {...obraAberta, ...d};
+  await pgDetalhe();
 };
 
 window.showEtapaForm = () => {
-  document.getElementById('etapa-form-wrap').innerHTML = `
-    <div class="form-wrap" style="margin-bottom:14px;">
-      <div class="form-title"><span>Nova etapa</span><button class="btn-close" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">×</button></div>
-      <div class="form-grid">
-        <div class="form-group form-full"><label class="form-label">Nome da etapa *</label><input class="form-input" id="et-nome" placeholder="Ex: Fundação"></div>
-        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="et-inicio"></div>
-        <div class="form-group"><label class="form-label">Previsão de fim</label><input type="date" class="form-input" id="et-fim"></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn-secondary" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">Cancelar</button>
-        <button class="btn-primary" onclick="window.salvarEtapa()">Salvar etapa</button>
-      </div>
+  document.getElementById('etapa-form-wrap').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova etapa</span><button class="btn-close" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">×</button></div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="et-nome" placeholder="Ex: Fundação"></div>
+      <div class="form-group"><label class="form-label">Início</label><input type="date" class="form-input" id="et-ini"></div>
+      <div class="form-group"><label class="form-label">Previsão fim</label><input type="date" class="form-input" id="et-fim"></div>
     </div>
-  `;
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">Cancelar</button>
+      <button class="btn-primary" onclick="window.salvarEtapa()">Salvar</button>
+    </div>
+  </div>`;
 };
 
 window.salvarEtapa = async () => {
   const nome = document.getElementById('et-nome').value.trim();
-  if (!nome) return alert('Nome da etapa é obrigatório');
-  const etapasSnap = await getDocs(etapasCol(obraAberta.id));
-  await addDoc(etapasCol(obraAberta.id), {
-    nome, obra_id: obraAberta.id,
-    ordem: etapasSnap.size + 1,
-    status: 'pendente',
-    data_inicio: document.getElementById('et-inicio').value,
-    data_prevista_fim: document.getElementById('et-fim').value,
-    created_at: serverTimestamp()
-  });
-  await renderObraDetalhe();
+  if (!nome) return alert('Nome obrigatório');
+  const s = await getDocs(sub(obraAberta.id,'etapas'));
+  await addDoc(sub(obraAberta.id,'etapas'), {nome, obra_id:obraAberta.id, ordem:s.size+1, status:'pendente', data_inicio:document.getElementById('et-ini').value, data_prevista_fim:document.getElementById('et-fim').value, created_at:serverTimestamp()});
+  await pgDetalhe();
 };
 
-window.deletarEtapa = async (id) => {
-  if (!confirm('Excluir esta etapa?')) return;
+window.delEtapa = async (id) => {
+  if (!confirm('Excluir?')) return;
   await deleteDoc(doc(db,'obras',obraAberta.id,'etapas',id));
-  await renderObraDetalhe();
+  await pgDetalhe();
 };
 
 window.showTarefaForm = (etapaId) => {
-  document.getElementById(`tarefa-form-${etapaId}`).innerHTML = `
-    <div style="padding:12px 16px;background:#16161A;border-top:0.5px solid #2E2E38;">
-      <div class="form-grid" style="margin-bottom:10px;">
-        <div class="form-group form-full"><label class="form-label">Nome da tarefa *</label><input class="form-input" id="tf-nome-${etapaId}" placeholder="Ex: Escavar fundação"></div>
-        <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-resp-${etapaId}" placeholder="Nome"></div>
-        <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-data-${etapaId}"></div>
-        <div class="form-group"><label class="form-label">Prioridade</label>
-          <select class="form-input" id="tf-prio-${etapaId}">
-            <option value="normal">Normal</option>
-            <option value="alta">Alta</option>
-            <option value="urgente">Urgente</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn-secondary btn-sm" onclick="document.getElementById('tarefa-form-${etapaId}').innerHTML=''">Cancelar</button>
-        <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
-      </div>
+  document.getElementById(`tf-form-${etapaId}`).innerHTML = `<div style="padding:12px 16px;background:#16161A;border-top:0.5px solid #2E2E38;">
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="tf-n-${etapaId}" placeholder="Ex: Escavar fundação"></div>
+      <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-r-${etapaId}" placeholder="Nome"></div>
+      <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-d-${etapaId}"></div>
+      <div class="form-group"><label class="form-label">Prioridade</label><select class="form-input" id="tf-p-${etapaId}"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
     </div>
-  `;
+    <div class="form-actions">
+      <button class="btn-secondary btn-sm" onclick="document.getElementById('tf-form-${etapaId}').innerHTML=''">Cancelar</button>
+      <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+    </div>
+  </div>`;
 };
 
 window.salvarTarefa = async (etapaId) => {
-  const nome = document.getElementById(`tf-nome-${etapaId}`).value.trim();
-  if (!nome) return alert('Nome da tarefa é obrigatório');
-  await addDoc(tarefasCol(obraAberta.id), {
-    nome, etapa_id: etapaId, obra_id: obraAberta.id,
-    responsavel: document.getElementById(`tf-resp-${etapaId}`).value,
-    data_prevista: document.getElementById(`tf-data-${etapaId}`).value,
-    prioridade: document.getElementById(`tf-prio-${etapaId}`).value,
-    status: 'pendente',
-    created_at: serverTimestamp()
-  });
-  await renderObraDetalhe();
+  const nome = document.getElementById(`tf-n-${etapaId}`).value.trim();
+  if (!nome) return alert('Nome obrigatório');
+  await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, status:'pendente', created_at:serverTimestamp()});
+  await pgDetalhe();
 };
 
-window.toggleTarefa = async (id, status) => {
-  const novoStatus = status === 'concluida' ? 'pendente' : 'concluida';
-  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {
-    status: novoStatus,
-    data_conclusao: novoStatus === 'concluida' ? new Date().toISOString().split('T')[0] : null
-  });
-  await renderObraDetalhe();
+window.togTarefa = async (id, status) => {
+  const novo = status==='concluida'?'pendente':'concluida';
+  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:novo, data_conclusao:novo==='concluida'?new Date().toISOString().split('T')[0]:null});
+  await pgDetalhe();
 };
 
-window.deletarTarefa = async (id) => {
+window.delTarefa = async (id) => {
   await deleteDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
-  await renderObraDetalhe();
+  await pgDetalhe();
 };
+
+// ══ FINANCEIRO ══
+async function pgFin() {
+  setPage('financeiro');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div>`;
+  if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+  else {
+    html += `<div class="form-group" style="max-width:400px;margin-bottom:24px;">
+      <label class="form-label">Selecione a obra</label>
+      <select class="form-input" id="fin-sel" onchange="window.loadFin(this.value)">
+        <option value="">— Selecionar obra —</option>
+        ${obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('')}
+      </select>
+    </div>
+    <div id="fin-body"></div>`;
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+window.loadFin = async (obraId) => {
+  if (!obraId) { document.getElementById('fin-body').innerHTML=''; return; }
+  document.getElementById('fin-body').innerHTML = '<div class="loading">Carregando...</div>';
+  const [os,cs,ms] = await Promise.all([getDocs(sub(obraId,'orcamentos')),getDocs(sub(obraId,'contas')),getDocs(sub(obraId,'medicoes'))]);
+  const orcs = os.docs.map(d=>({id:d.id,...d.data()}));
+  const contas = cs.docs.map(d=>({id:d.id,...d.data()}));
+  const meds = ms.docs.map(d=>({id:d.id,...d.data()}));
+  const totOrc = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+  const totReal = orcs.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
+  const totPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totRec = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totPago = contas.filter(c=>c.tipo==='pagar'&&c.status==='pago').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+
+  let orcList = orcs.length ? orcs.map(o=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+    <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">${o.descricao}</div><div style="font-size:11px;color:#5F5E5A;">${o.categoria||'—'}</div></div>
+    <div style="text-align:right;"><div style="font-size:12px;color:#5F5E5A;">Previsto: ${fmtR(o.valor_previsto)}</div><div style="font-size:12px;color:${(o.valor_real||0)>(o.valor_previsto||0)?'#F09595':'#5DCAA5'};">Real: ${fmtR(o.valor_real)}</div></div>
+    <button onclick="window.delOrc('${obraId}','${o.id}')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>
+  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhum item orçado</div></div>';
+
+  let contaList = contas.length ? contas.map(c=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+    <div style="flex:1;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:13px;font-weight:500;color:#fff;">${c.descricao}</span><span class="badge ${c.tipo==='pagar'?'badge-pausada':'badge-andamento'}">${c.tipo==='pagar'?'Pagar':'Receber'}</span><span class="badge ${c.status==='pago'||c.status==='recebido'?'badge-concluida':'badge-planejamento'}">${c.status||'pendente'}</span></div>
+      <div style="font-size:11px;color:#5F5E5A;margin-top:2px;">${c.fornecedor||''}${c.data_vencimento?' · Venc: '+fmtD(c.data_vencimento):''}</div>
+    </div>
+    <div style="font-size:14px;font-weight:500;color:#fff;">${fmtR(c.valor)}</div>
+    <button onclick="window.togConta('${obraId}','${c.id}','${c.tipo}','${c.status||'pendente'}')" style="background:#26215C;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#AFA9EC;cursor:pointer;">${c.status==='pago'||c.status==='recebido'?'Desfazer':'Marcar pago'}</button>
+    <button onclick="window.delConta('${obraId}','${c.id}')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>
+  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhuma conta lançada</div></div>';
+
+  let medList = meds.length ? meds.map(m=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+    <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">Medição #${m.numero||'—'}</div><div style="font-size:11px;color:#5F5E5A;">${m.data_medicao?fmtD(m.data_medicao):''}${m.observacao?' · '+m.observacao:''}</div></div>
+    <span class="badge ${m.status==='aprovada'?'badge-andamento':'badge-planejamento'}">${m.status||'pendente'}</span>
+    <div style="font-size:14px;font-weight:500;color:#fff;">${fmtR(m.valor)}</div>
+    <button onclick="window.delMed('${obraId}','${m.id}')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>
+  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhuma medição lançada</div></div>';
+
+  document.getElementById('fin-body').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Total orçado</div></div>
+      <div class="stat-card"><div class="stat-val">${fmtR(totReal)}</div><div class="stat-lbl">Custo real</div><span class="stat-tag ${totReal>totOrc?'tag-warn':'tag-ok'}">${totReal>totOrc?'acima':'dentro'} do orçamento</span></div>
+      <div class="stat-card"><div class="stat-val">${fmtR(totPagar)}</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">${fmtR(totPago)} pago</span></div>
+      <div class="stat-card"><div class="stat-val">${fmtR(totRec)}</div><div class="stat-lbl">A receber</div></div>
+    </div>
+    <div class="sub-header"><span class="sub-title">Orçamento</span><button class="btn-primary btn-sm" onclick="window.showOrcForm('${obraId}')">+ Item</button></div>
+    <div id="orc-form"></div>
+    <div id="orc-list">${orcList}</div>
+    <div class="sub-header" style="margin-top:24px;"><span class="sub-title">Contas a pagar / receber</span><button class="btn-primary btn-sm" onclick="window.showContaForm('${obraId}')">+ Conta</button></div>
+    <div id="conta-form"></div>
+    <div id="conta-list">${contaList}</div>
+    <div class="sub-header" style="margin-top:24px;"><span class="sub-title">Medições</span><button class="btn-primary btn-sm" onclick="window.showMedForm('${obraId}')">+ Medição</button></div>
+    <div id="med-form"></div>
+    <div id="med-list">${medList}</div>`;
+};
+
+window.showOrcForm = (oid) => {
+  document.getElementById('orc-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo item</span><button class="btn-close" onclick="document.getElementById('orc-form').innerHTML=''">×</button></div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="orc-desc" placeholder="Ex: Mão de obra elétrica"></div>
+      <div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="orc-cat" placeholder="Ex: Mão de obra"></div>
+      <div class="form-group"><label class="form-label">Valor previsto (R$)</label><input type="number" class="form-input" id="orc-prev" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Valor real (R$)</label><input type="number" class="form-input" id="orc-real" placeholder="0,00"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="document.getElementById('orc-form').innerHTML=''">Cancelar</button>
+      <button class="btn-primary" onclick="window.salvarOrc('${oid}')">Salvar</button>
+    </div>
+  </div>`;
+};
+window.salvarOrc = async (oid) => {
+  const desc = document.getElementById('orc-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await addDoc(sub(oid,'orcamentos'), {descricao:desc, categoria:document.getElementById('orc-cat').value, valor_previsto:parseFloat(document.getElementById('orc-prev').value)||0, valor_real:parseFloat(document.getElementById('orc-real').value)||0, created_at:serverTimestamp()});
+  window.loadFin(oid);
+};
+window.delOrc = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'orcamentos',id)); window.loadFin(oid); };
+
+window.showContaForm = (oid) => {
+  document.getElementById('conta-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova conta</span><button class="btn-close" onclick="document.getElementById('conta-form').innerHTML=''">×</button></div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="ct-desc" placeholder="Ex: Compra de materiais"></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ct-tipo"><option value="pagar">A pagar</option><option value="receber">A receber</option></select></div>
+      <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="ct-valor" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Vencimento</label><input type="date" class="form-input" id="ct-venc"></div>
+      <div class="form-group"><label class="form-label">Fornecedor / cliente</label><input class="form-input" id="ct-forn" placeholder="Nome"></div>
+      <div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="ct-cat" placeholder="Ex: Material"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="document.getElementById('conta-form').innerHTML=''">Cancelar</button>
+      <button class="btn-primary" onclick="window.salvarConta('${oid}')">Salvar</button>
+    </div>
+  </div>`;
+};
+window.salvarConta = async (oid) => {
+  const desc = document.getElementById('ct-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await addDoc(sub(oid,'contas'), {descricao:desc, tipo:document.getElementById('ct-tipo').value, valor:parseFloat(document.getElementById('ct-valor').value)||0, data_vencimento:document.getElementById('ct-venc').value, fornecedor:document.getElementById('ct-forn').value, categoria:document.getElementById('ct-cat').value, status:'pendente', created_at:serverTimestamp()});
+  window.loadFin(oid);
+};
+window.togConta = async (oid,id,tipo,status) => {
+  const novo = (status==='pago'||status==='recebido') ? 'pendente' : (tipo==='pagar'?'pago':'recebido');
+  await updateDoc(doc(db,'obras',oid,'contas',id), {status:novo});
+  window.loadFin(oid);
+};
+window.delConta = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'contas',id)); window.loadFin(oid); };
+
+window.showMedForm = (oid) => {
+  document.getElementById('med-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova medição</span><button class="btn-close" onclick="document.getElementById('med-form').innerHTML=''">×</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Número</label><input type="number" class="form-input" id="med-num" placeholder="1"></div>
+      <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="med-data"></div>
+      <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="med-val" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-input" id="med-st"><option value="pendente">Pendente</option><option value="aprovada">Aprovada</option></select></div>
+      <div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="med-obs" placeholder="Observações"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="document.getElementById('med-form').innerHTML=''">Cancelar</button>
+      <button class="btn-primary" onclick="window.salvarMed('${oid}')">Salvar</button>
+    </div>
+  </div>`;
+};
+window.salvarMed = async (oid) => {
+  await addDoc(sub(oid,'medicoes'), {numero:parseInt(document.getElementById('med-num').value)||1, data_medicao:document.getElementById('med-data').value, valor:parseFloat(document.getElementById('med-val').value)||0, status:document.getElementById('med-st').value, observacao:document.getElementById('med-obs').value, created_at:serverTimestamp()});
+  window.loadFin(oid);
+};
+window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'medicoes',id)); window.loadFin(oid); };
 
 </script>
 </body>
