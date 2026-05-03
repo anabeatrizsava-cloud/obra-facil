@@ -89,14 +89,32 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
 /* ── MOBILE ── */
-#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:row!important;}
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:column!important;}
+.bn-quick-row{display:flex;flex-direction:row;height:56px;align-items:stretch;}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#484F58;cursor:pointer;font-size:10px;min-width:0;}
+.bn-item svg{flex-shrink:0;}
+.bn-item.active{color:#fff;}
+.bn-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.bn-safe{height:env(safe-area-inset-bottom,0px);background:#161B22;}
 #more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;max-height:70vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);}
+.sheet-handle-wrap{display:flex;justify-content:center;padding:12px 0 8px;cursor:pointer;}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:#30363D;}
+.sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:8px 12px 16px;}
+.sheet-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:10px;color:#8B949E;font-size:11px;cursor:pointer;}
+.sheet-item:active{background:#21262D;}
+.sheet-icon{width:40px;height:40px;border-radius:10px;background:#21262D;display:flex;align-items:center;justify-content:center;}
 @media(max-width:768px){
+  html{background:#0D1117;}
+  body{background:#0D1117;margin:0;padding:0;overflow:hidden;}
+  #app{position:fixed;top:0;left:0;right:0;bottom:0;height:100dvh;display:flex;flex-direction:column;background:#0D1117;overflow:hidden;}
+  #main-layout{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding-top:env(safe-area-inset-top,44px);}
+  #bottom-nav{display:flex!important;}
+  .body-wrap{flex:1;min-height:0;overflow:hidden;display:flex;}
+  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(72px + env(safe-area-inset-bottom,34px)) 14px;}
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
   .sidebar{display:none!important;}
   .nav-tip{display:none!important;}
-  .content{padding:16px 14px 88px;}
   .form-grid{grid-template-columns:1fr!important;}
   .form-full{grid-column:1!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
@@ -211,6 +229,7 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
         <span>Mais</span>
       </div>
     </div>
+    <div class="bn-safe"></div>
   </div>
 
   <!-- BOTTOM SHEET OVERLAY -->
@@ -325,10 +344,6 @@ onAuthStateChanged(auth, async user => {
     currentPerms = roleData.modulos;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = '';
-    // Apply mobile layout multiple times to ensure DOM is ready
-    applyMobileLayout();
-    setTimeout(applyMobileLayout, 100);
-    setTimeout(applyMobileLayout, 300);
     document.getElementById('user-email').textContent = user.email;
     document.getElementById('user-avatar').textContent = user.email.substring(0,2).toUpperCase();
     applyRoleToSidebar();
@@ -586,8 +601,9 @@ async function pgDetalhe() {
             ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
             ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
           </div>
+          ${t.fotos&&t.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;">${t.fotos.map(f=>`<img src="${f}" style="width:56px;height:56px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open('${f}','_blank')">`).join('')}</div>`:''}
         </div>
-        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
+        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;align-self:flex-start;">×</button>
       </div>`;
     });
     html += '</div>';
@@ -646,12 +662,31 @@ window.showTarefaForm = (etapaId) => {
       <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-r-${etapaId}" placeholder="Nome"></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-d-${etapaId}"></div>
       <div class="form-group"><label class="form-label">Prioridade</label><select class="form-input" id="tf-p-${etapaId}"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
+      <div class="form-group form-full">
+        <label class="form-label">Fotos</label>
+        <input type="file" class="form-input" id="tf-f-${etapaId}" accept="image/*" multiple style="padding:6px;">
+        <div id="tf-prev-${etapaId}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-secondary btn-sm" onclick="document.getElementById('tf-form-${etapaId}').innerHTML=''">Cancelar</button>
-      <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+      <button class="btn-primary btn-sm" id="tf-btn-${etapaId}" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
     </div>
   </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById('tf-f-' + etapaId);
+    if (inp) inp.onchange = () => {
+      const prev = document.getElementById('tf-prev-' + etapaId);
+      if (!prev) return;
+      prev.innerHTML = '';
+      Array.from(inp.files).forEach(f => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;';
+        prev.appendChild(img);
+      });
+    };
+  }, 50);
 };
 
 window.salvarTarefa = async (etapaId) => {
@@ -1909,41 +1944,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 });
 
 
-// ── MOBILE LAYOUT FIX ──
-function applyMobileLayout() {
-  const isMobile = window.innerWidth <= 768;
-  const h = window.innerHeight;
-  const bn = document.getElementById('bottom-nav');
-  const app = document.getElementById('app');
-  const ml = document.getElementById('main-layout');
-  const bw = document.querySelector('.body-wrap');
-  const ct = document.getElementById('content');
-
-  if (isMobile) {
-    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:'+h+'px;';
-    if (app) app.style.cssText = 'width:100%;height:'+h+'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;overflow:hidden;';
-    if (ml) {
-      const topbarH = 48;
-      const navH = 56;
-      const bodyH = h - topbarH - navH;
-      ml.style.display = 'flex';
-      ml.style.cssText = 'display:flex;flex-direction:column;width:100%;height:'+(h-navH)+'px;overflow:hidden;';
-      if (bw) bw.style.cssText = 'display:flex;flex:1;height:'+bodyH+'px;overflow:hidden;';
-      if (ct) ct.style.cssText = 'flex:1;height:'+bodyH+'px;overflow-y:auto;padding:16px 14px 16px;-webkit-overflow-scrolling:touch;';
-    }
-    if (bn) { bn.style.display = 'flex'; bn.style.flexDirection = 'row'; bn.style.alignItems = 'center'; }
-  } else {
-    document.body.style.cssText = '';
-    if (app) app.style.cssText = '';
-    if (ml) ml.style.cssText = '';
-    if (bw) bw.style.cssText = '';
-    if (ct) ct.style.cssText = '';
-    if (bn) bn.style.display = 'none';
-  }
-}
-applyMobileLayout();
-window.addEventListener('resize', applyMobileLayout);
-window.addEventListener('orientationchange', () => setTimeout(applyMobileLayout, 300));
+// ── MOBILE: layout handled entirely by CSS (dvh + safe-area-inset) ──
 
 </script>
 </body>
