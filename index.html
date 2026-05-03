@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0D1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -185,7 +185,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
     </div>
   </div>
   <!-- BOTTOM NAV MOBILE -->
-  <div id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:#0D1117;border-top:0.5px solid #21262D;z-index:200;align-items:stretch;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);">
+  <div id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;height:56px;background:#0D1117;border-top:0.5px solid #21262D;z-index:200;align-items:stretch;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);">
     <div class="bn-item active" onclick="window.bnNav('dashboard')" data-bn="dashboard">
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="1" y="7" width="14" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><polyline points="1,7 8,2 15,7" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg>
       <span>Home</span>
@@ -1889,16 +1889,12 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 
 // ── MOBILE VIEWPORT HEIGHT FIX ──
 function setVH() {
-  const vh = window.innerHeight;
-  document.getElementById('app').style.height = vh + 'px';
-  const ml = document.getElementById('main-layout');
-  if (ml && ml.style.display !== 'none') ml.style.height = vh + 'px';
-  const ls = document.getElementById('login-screen');
-  if (ls) ls.style.height = vh + 'px';
+  if (window.innerWidth > 768) return;
+  const app = document.getElementById('app');
+  if (app) { app.style.height = ''; app.style.position = 'fixed'; app.style.top='0'; app.style.left='0'; app.style.right='0'; app.style.bottom='0'; }
 }
 setVH();
-window.addEventListener('resize', setVH);
-window.addEventListener('orientationchange', () => setTimeout(setVH, 200));
+window.addEventListener('orientationchange', () => setTimeout(setVH, 300));
 
 </script>
 </body>
