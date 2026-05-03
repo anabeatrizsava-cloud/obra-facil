@@ -89,14 +89,14 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
 /* ── MOBILE ── */
-#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#0D1117;border-top:0.5px solid #21262D;z-index:200;align-items:stretch;justify-content:space-around;}
-#more-drawer{display:none;position:fixed;bottom:56px;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;z-index:199;padding:4px 0;}
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:64px;background:#0D1117;border-top:0.5px solid #21262D;z-index:200;align-items:stretch;justify-content:space-around;}
+#more-drawer{display:none;position:fixed;bottom:64px;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;z-index:199;padding:4px 0;}
 @media(max-width:768px){
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
   .sidebar{display:none!important;}
   .nav-tip{display:none!important;}
-  .content{padding:16px 14px 80px;}
+  .content{padding:16px 14px 88px;}
   .form-grid{grid-template-columns:1fr!important;}
   .form-full{grid-column:1!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
@@ -642,7 +642,14 @@ window.showTarefaForm = (etapaId) => {
 window.salvarTarefa = async (etapaId) => {
   const nome = document.getElementById(`tf-n-${etapaId}`).value.trim();
   if (!nome) return alert('Nome obrigatório');
-  await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, status:'pendente', created_at:serverTimestamp()});
+  const btn = document.getElementById(`tf-btn-${etapaId}`);
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+  const files = document.getElementById(`tf-f-${etapaId}`)?.files || [];
+  const fotos = [];
+  for (const f of Array.from(files)) {
+    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
+  }
+  await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, status:'pendente', fotos, created_at:serverTimestamp()});
   await pgDetalhe();
 };
 
