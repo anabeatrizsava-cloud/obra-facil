@@ -125,6 +125,19 @@ const firebaseConfig = {
   appId: "1:124871692654:web:4c8a914cbcaea6167a317f"
 };
 
+
+const CLOUDINARY_CLOUD = 'dhtzmumq4';
+const CLOUDINARY_PRESET = 'obra-facil';
+
+async function uploadToCloudinary(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/auto/upload', {method:'POST', body:fd});
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.secure_url;
+}
 const fbApp = initializeApp(firebaseConfig, 'obra-facil');
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
@@ -823,6 +836,7 @@ window.loadDiario = async (oid) => {
         '</div>' +
         (r.descricao ? '<div style="font-size:13px;color:#D3D1C7;margin-bottom:6px;">' + r.descricao + '</div>' : '') +
         (r.ocorrencias ? '<div style="font-size:12px;color:#FAC775;padding:6px 10px;background:#3D3000;border-radius:6px;">⚠ ' + r.ocorrencias + '</div>' : '') +
+        (r.fotos && r.fotos.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">' + r.fotos.map(f => '<img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(\'' + f + '\',\'_blank\')">').join('') + '</div>' : '') +
       '</div>';
     });
   }
@@ -843,23 +857,42 @@ window.showDiarioForm = (oid) => {
         '<div class="form-group"><label class="form-label">Efetivo (pessoas)</label><input type="number" class="form-input" id="dir-ef" placeholder="0"></div>' +
         '<div class="form-group form-full"><label class="form-label">Descrição das atividades</label><textarea class="form-input" style="height:72px;resize:none;" id="dir-desc" placeholder="O que foi feito hoje..."></textarea></div>' +
         '<div class="form-group form-full"><label class="form-label">Ocorrências / problemas</label><textarea class="form-input" style="height:56px;resize:none;" id="dir-oc" placeholder="Atrasos, problemas, paralisações..."></textarea></div>' +
+        '<div class="form-group form-full"><label class="form-label">Fotos do dia</label><input type="file" class="form-input" id="dir-fotos" accept="image/*" multiple style="padding:6px;"><div id="dir-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div></div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'dir-form\').innerHTML=\'\'">Cancelar</button>' +
-        '<button class="btn-primary" onclick="window.salvarDiario(\'' + oid + '\')">Salvar</button>' +
+        '<button class="btn-primary" id="dir-btn" onclick="window.salvarDiario(\'' + oid + '\')">Salvar</button>' +
       '</div>' +
     '</div>';
+  setTimeout(() => {
+    const inp = document.getElementById('dir-fotos');
+    if (inp) inp.onchange = () => {
+      const prev = document.getElementById('dir-preview');
+      prev.innerHTML = '';
+      Array.from(inp.files).forEach(f => {
+        prev.innerHTML += '<img src="' + URL.createObjectURL(f) + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;">';
+      });
+    };
+  }, 50);
 };
 
 window.salvarDiario = async (oid) => {
   const data = document.getElementById('dir-data').value;
   if (!data) return alert('Data obrigatória');
+  const btn = document.getElementById('dir-btn');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+  const files = document.getElementById('dir-fotos')?.files || [];
+  const fotos = [];
+  for (const f of Array.from(files)) {
+    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { alert('Erro ao enviar foto: ' + e.message); }
+  }
   await addDoc(sub(oid,'diario'), {
     data,
     clima: document.getElementById('dir-clima').value,
     efetivo: parseInt(document.getElementById('dir-ef').value)||null,
     descricao: document.getElementById('dir-desc').value,
     ocorrencias: document.getElementById('dir-oc').value,
+    fotos,
     uid: uid(),
     created_at: serverTimestamp()
   });
@@ -928,23 +961,41 @@ window.showDocForm = (oid) => {
       '<div class="form-grid">' +
         '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="doc-nome" placeholder="Ex: Planta baixa v2"></div>' +
         '<div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="doc-tipo">' + TIPOS.map(t => '<option value="' + t + '">' + LABELS[t] + '</option>').join('') + '</select></div>' +
-        '<div class="form-group"><label class="form-label">Link / URL (opcional)</label><input class="form-input" id="doc-url" placeholder="https://..."></div>' +
-        '<div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="doc-obs" placeholder="Notas sobre o documento"></div>' +
+        '<div class="form-group"><label class="form-label">Observação</label><input class="form-input" id="doc-obs" placeholder="Notas sobre o documento"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Anexar arquivo (imagem, PDF)</label><input type="file" class="form-input" id="doc-file" accept="image/*,.pdf" style="padding:6px;"><div id="doc-preview" style="margin-top:8px;"></div></div>' +
+        '<div class="form-group form-full"><label class="form-label">Ou cole um link externo</label><input class="form-input" id="doc-url" placeholder="https://..."></div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'doc-form\').innerHTML=\'\'">Cancelar</button>' +
-        '<button class="btn-primary" onclick="window.salvarDoc(\'' + oid + '\')">Salvar</button>' +
+        '<button class="btn-primary" id="doc-btn" onclick="window.salvarDoc(\'' + oid + '\')">Salvar</button>' +
       '</div>' +
     '</div>';
+  setTimeout(() => {
+    const inp = document.getElementById('doc-file');
+    if (inp) inp.onchange = () => {
+      const f = inp.files[0];
+      const prev = document.getElementById('doc-preview');
+      if (!f) { prev.innerHTML=''; return; }
+      if (f.type.startsWith('image/')) prev.innerHTML = '<img src="' + URL.createObjectURL(f) + '" style="max-width:200px;max-height:120px;border-radius:6px;object-fit:cover;">';
+      else prev.innerHTML = '<span style="font-size:12px;color:#5DCAA5;">📄 ' + f.name + '</span>';
+    };
+  }, 50);
 };
 
 window.salvarDoc = async (oid) => {
   const nome = document.getElementById('doc-nome').value.trim();
   if (!nome) return alert('Nome obrigatório');
+  const btn = document.getElementById('doc-btn');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+  let url = document.getElementById('doc-url').value;
+  const file = document.getElementById('doc-file')?.files[0];
+  if (file) {
+    try { url = await uploadToCloudinary(file); } catch(e) { alert('Erro ao enviar arquivo: ' + e.message); if(btn){btn.textContent='Salvar';btn.disabled=false;} return; }
+  }
   await addDoc(sub(oid,'documentos'), {
     nome,
     tipo: document.getElementById('doc-tipo').value,
-    url: document.getElementById('doc-url').value,
+    url,
     observacao: document.getElementById('doc-obs').value,
     uid: uid(),
     created_at: serverTimestamp()
