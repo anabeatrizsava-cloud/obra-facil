@@ -249,8 +249,96 @@ async function renderPage(page) {
   content.innerHTML = '<div class="loading">Carregando...</div>';
   if (page === 'dashboard') await renderDashboard();
   else if (page === 'obras') { obraAberta ? await renderObraDetalhe() : await renderObras(); }
+  else if (page === 'financeiro') await renderFinanceiro();
   else content.innerHTML = `<div class="wip">Módulo em construção</div>`;
 }
+
+
+// Helpers financeiro
+const orcamentosCol = (obraId) => collection(db,'obras',obraId,'orcamentos');
+const contasCol = (obraId) => collection(db,'obras',obraId,'contas');
+const medicoesCol = (obraId) => collection(db,'obras',obraId,'medicoes');
+
+// ==================== FINANCEIRO ====================
+async function renderFinanceiro() {
+  const q = query(obrasCol(), where('uid','==',uid()));
+  const snap = await getDocs(q);
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const obraSelect = obras.length === 0
+    ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra cadastrada</div></div></div>'
+    : '<div class="form-group" style="margin-bottom:20px;max-width:400px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="fin-obra-sel" onchange="window.carregarFinanceiro(this.value)"><option value="">— Selecionar obra —</option>' + obras.map(o=>'<option value="'+o.id+'">'+o.nome+'</option>').join('') + '</select></div><div id="fin-content"></div>';
+  document.getElementById('content').innerHTML = '<div class="page-header"><div><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div></div>' + obraSelect;
+}
+
+window.carregarFinanceiro = async (obraId) => {
+  if (!obraId) { document.getElementById('fin-content').innerHTML = ''; return; }
+  document.getElementById('fin-content').innerHTML = '<div class="loading">Carregando...</div>';
+  const [orcSnap, contasSnap, medSnap] = await Promise.all([
+    getDocs(orcamentosCol(obraId)),
+    getDocs(contasCol(obraId)),
+    getDocs(medicoesCol(obraId))
+  ]);
+  const orcamentos = orcSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const contas = contasSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const medicoes = medSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const totalOrcado = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+  const totalReal = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
+  const totalPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totalReceber = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totalPago = contas.filter(c=>c.tipo==='pagar'&&c.status==='pago').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const desvio = totalReal - totalOrcado;
+  document.getElementById('fin-content').innerHTML =
+    '<div class="stats-grid" style="margin-bottom:20px;">' +
+    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalOrcado)+'</div><div class="stat-lbl">Total orçado</div></div>' +
+    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalReal)+'</div><div class="stat-lbl">Custo real</div><span class="stat-tag '+(desvio>0?'tag-warn':'tag-ok')+'">'+(desvio>0?'acima':'dentro')+' do orçamento</span></div>' +
+    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalPagar)+'</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">'+fmtCurrency(totalPago)+' pago</span></div>' +
+    '<div class="stat-card"><div class="stat-val">'+fmtCurrency(totalReceber)+'</div><div class="stat-lbl">A receber</div></div>' +
+    '</div>' +
+    '<div class="sub-header"><span class="sub-title">Orçamento</span><button class="btn-primary btn-sm" onclick="window.showOrcForm('' + obraId + '')">+ Item</button></div>' +
+    '<div id="orc-form-wrap"></div>' +
+    '<div id="orc-list">' + (orcamentos.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhum item orçado</div></div></div>':orcamentos.map(o=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">'+o.descricao+'</div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+( o.categoria||'—')+'</div></div><div style="text-align:right;flex-shrink:0;"><div style="font-size:12px;color:#5F5E5A;">Previsto: '+fmtCurrency(o.valor_previsto)+'</div><div style="font-size:12px;color:'+((o.valor_real||0)>(o.valor_previsto||0)?'#F09595':'#5DCAA5')+'">Real: '+fmtCurrency(o.valor_real)+'</div></div><button onclick="window.deletarOrc('' + obraId + '','' + o.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>' +
+    '<div class="sub-header" style="margin-top:24px;"><span class="sub-title">Contas a pagar / receber</span><button class="btn-primary btn-sm" onclick="window.showContaForm('' + obraId + '')">+ Conta</button></div>' +
+    '<div id="conta-form-wrap"></div>' +
+    '<div id="conta-list">' + (contas.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma conta lançada</div></div></div>':contas.map(c=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:500;color:#fff;">'+c.descricao+'</span><span class="badge '+(c.tipo==='pagar'?'badge-pausada':'badge-andamento')+'">'+( c.tipo==='pagar'?'Pagar':'Receber')+'</span><span class="badge '+(c.status==='pago'||c.status==='recebido'?'badge-concluida':'badge-planejamento')+'">'+( c.status||'pendente')+'</span></div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+(c.fornecedor||'')+' '+(c.data_vencimento?'· Venc: '+fmtDate(c.data_vencimento):'')+'</div></div><div style="font-size:14px;font-weight:500;color:#fff;flex-shrink:0;">'+fmtCurrency(c.valor)+'</div><button onclick="window.toggleConta('' + obraId + '','' + c.id + '','' + c.tipo + '','' + (c.status||'pendente') + '')" style="background:#26215C;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#AFA9EC;cursor:pointer;">'+(c.status==='pago'||c.status==='recebido'?'Desfazer':'Marcar pago')+'</button><button onclick="window.deletarConta('' + obraId + '','' + c.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>' +
+    '<div class="sub-header" style="margin-top:24px;"><span class="sub-title">Medições</span><button class="btn-primary btn-sm" onclick="window.showMedicaoForm('' + obraId + '')">+ Medição</button></div>' +
+    '<div id="med-form-wrap"></div>' +
+    '<div id="med-list">' + (medicoes.length===0?'<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma medição lançada</div></div></div>':medicoes.map(m=>'<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;"><div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">Medição #'+(m.numero||'—')+'</div><div style="font-size:11px;color:#5F5E5A;margin-top:2px;">'+(m.data_medicao?fmtDate(m.data_medicao):'')+' '+(m.observacao?'· '+m.observacao:'')+'</div></div><span class="badge '+(m.status==='aprovada'?'badge-andamento':'badge-planejamento')+'">'+( m.status||'pendente')+'</span><div style="font-size:14px;font-weight:500;color:#fff;flex-shrink:0;">'+fmtCurrency(m.valor)+'</div><button onclick="window.deletarMedicao('' + obraId + '','' + m.id + '')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button></div>').join('')) + '</div>';
+};
+
+window.showOrcForm = (obraId) => {
+  document.getElementById('orc-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Novo item de orçamento</span><button class="btn-close" onclick="document.getElementById(' orc-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="orc-desc" placeholder="Ex: Mão de obra elétrica"></div><div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="orc-cat" placeholder="Ex: Mão de obra"></div><div class="form-group"><label class="form-label">Valor previsto (R$)</label><input type="number" class="form-input" id="orc-prev" placeholder="0,00"></div><div class="form-group"><label class="form-label">Valor real (R$)</label><input type="number" class="form-input" id="orc-real" placeholder="0,00"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('orc-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarOrc('' + obraId + ')">Salvar</button></div></div>';
+};
+
+window.salvarOrc = async (obraId) => {
+  const desc = document.getElementById('orc-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await addDoc(orcamentosCol(obraId), { descricao: desc, categoria: document.getElementById('orc-cat').value, valor_previsto: parseFloat(document.getElementById('orc-prev').value)||0, valor_real: parseFloat(document.getElementById('orc-real').value)||0, created_at: serverTimestamp() });
+  window.carregarFinanceiro(obraId);
+};
+window.deletarOrc = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'orcamentos',id)); window.carregarFinanceiro(obraId); };
+
+window.showContaForm = (obraId) => {
+  document.getElementById('conta-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Nova conta</span><button class="btn-close" onclick="document.getElementById('conta-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="ct-desc" placeholder="Ex: Compra de materiais"></div><div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="ct-tipo"><option value="pagar">A pagar</option><option value="receber">A receber</option></select></div><div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="ct-valor" placeholder="0,00"></div><div class="form-group"><label class="form-label">Vencimento</label><input type="date" class="form-input" id="ct-venc"></div><div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="ct-forn" placeholder="Nome"></div><div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="ct-cat" placeholder="Ex: Material"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('conta-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarConta('' + obraId + ')">Salvar</button></div></div>';
+};
+
+window.salvarConta = async (obraId) => {
+  const desc = document.getElementById('ct-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await addDoc(contasCol(obraId), { descricao: desc, tipo: document.getElementById('ct-tipo').value, valor: parseFloat(document.getElementById('ct-valor').value)||0, data_vencimento: document.getElementById('ct-venc').value, fornecedor: document.getElementById('ct-forn').value, categoria: document.getElementById('ct-cat').value, status: 'pendente', created_at: serverTimestamp() });
+  window.carregarFinanceiro(obraId);
+};
+window.toggleConta = async (obraId, id, tipo, status) => { const novoStatus = (status==='pago'||status==='recebido') ? 'pendente' : (tipo==='pagar'?'pago':'recebido'); await updateDoc(doc(db,'obras',obraId,'contas',id), { status: novoStatus }); window.carregarFinanceiro(obraId); };
+window.deletarConta = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'contas',id)); window.carregarFinanceiro(obraId); };
+
+window.showMedicaoForm = (obraId) => {
+  document.getElementById('med-form-wrap').innerHTML = '<div class="form-wrap" style="margin-bottom:14px;"><div class="form-title"><span>Nova medição</span><button class="btn-close" onclick="document.getElementById('med-form-wrap').innerHTML=''">×</button></div><div class="form-grid"><div class="form-group"><label class="form-label">Número</label><input type="number" class="form-input" id="med-num" placeholder="1"></div><div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="med-data"></div><div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="med-val" placeholder="0,00"></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="med-status"><option value="pendente">Pendente</option><option value="aprovada">Aprovada</option></select></div><div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="med-obs" placeholder="Observações"></div></div><div class="form-actions"><button class="btn-secondary" onclick="document.getElementById('med-form-wrap').innerHTML=''">Cancelar</button><button class="btn-primary" onclick="window.salvarMedicao('' + obraId + ')">Salvar</button></div></div>';
+};
+
+window.salvarMedicao = async (obraId) => {
+  await addDoc(medicoesCol(obraId), { numero: parseInt(document.getElementById('med-num').value)||1, data_medicao: document.getElementById('med-data').value, valor: parseFloat(document.getElementById('med-val').value)||0, status: document.getElementById('med-status').value, observacao: document.getElementById('med-obs').value, created_at: serverTimestamp() });
+  window.carregarFinanceiro(obraId);
+};
+window.deletarMedicao = async (obraId, id) => { if (!confirm('Excluir?')) return; await deleteDoc(doc(db,'obras',obraId,'medicoes',id)); window.carregarFinanceiro(obraId); };
 
 // ==================== DASHBOARD ====================
 async function renderDashboard() {
