@@ -1,13 +1,578 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>obra-facil</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ObraFácil</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+#app{width:100%;height:100%;background:#16161A;color:#D3D1C7;}
+
+/* Login */
+#login-screen{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;}
+.login-logo{width:10px;height:10px;border-radius:50%;background:#7F77DD;}
+.login-title{font-size:24px;font-weight:500;color:#fff;}
+.login-sub{font-size:14px;color:#5F5E5A;}
+.btn-google{background:#534AB7;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;margin-top:8px;}
+.btn-google:hover{background:#3C3489;}
+
+/* Layout */
+#main-layout{display:flex;flex-direction:column;height:100%;}
+.topbar{background:#1E1E24;border-bottom:0.5px solid #2E2E38;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-logo{display:flex;align-items:center;gap:8px;}
+.topbar-dot{width:8px;height:8px;border-radius:50%;background:#7F77DD;}
+.topbar-name{font-size:15px;font-weight:500;color:#fff;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-email{font-size:12px;color:#5F5E5A;}
+.topbar-avatar{width:28px;height:28px;border-radius:50%;background:#3C3489;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#CECBF6;cursor:pointer;}
+.body-wrap{display:flex;flex:1;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{width:200px;min-width:200px;background:#1E1E24;border-right:0.5px solid #2E2E38;overflow-y:auto;flex-shrink:0;padding:8px 0;}
+.nav-section{font-size:10px;color:#5F5E5A;padding:12px 16px 4px;letter-spacing:0.06em;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#888780;cursor:pointer;transition:background 0.1s;}
+.nav-item:hover{background:#1a1a22;}
+.nav-item.active{background:#26215C;color:#AFA9EC;}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0;}
+.nav-item.active .nav-dot{background:#7F77DD;}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.page-title{font-size:18px;font-weight:500;color:#fff;}
+.page-sub{font-size:12px;color:#5F5E5A;margin-top:4px;}
+.btn-primary{background:#534AB7;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;}
+.btn-primary:hover{background:#3C3489;}
+.btn-secondary{background:transparent;border:0.5px solid #2E2E38;border-radius:8px;padding:9px 18px;font-size:13px;color:#888780;cursor:pointer;}
+.btn-secondary:hover{background:#1E1E24;}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px;}
+.btn-xs{padding:5px 10px;font-size:11px;border-radius:6px;}
+
+/* Cards */
+.card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+.card-sm{border-radius:10px;padding:12px 14px;}
+.empty-state{text-align:center;padding:48px 24px;}
+.empty-title{color:#444441;font-size:14px;}
+.empty-sub{color:#333;font-size:12px;margin-top:6px;}
+
+/* Form */
+.form-wrap{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:24px;margin-bottom:20px;}
+.form-title{font-size:15px;font-weight:500;color:#fff;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-full{grid-column:1/-1;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:12px;color:#888780;}
+.form-input{width:100%;background:#16161A;border:0.5px solid #2E2E38;border-radius:8px;padding:8px 11px;font-size:13px;color:#D3D1C7;outline:none;}
+.form-input:focus{border-color:#534AB7;}
+.form-textarea{height:72px;resize:none;}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+.btn-close{background:transparent;border:none;color:#5F5E5A;font-size:20px;cursor:pointer;line-height:1;}
+
+/* Status badges */
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;}
+.badge-planejamento{background:#26215C;color:#AFA9EC;}
+.badge-andamento{background:#0F3D2E;color:#5DCAA5;}
+.badge-pausada{background:#3D3000;color:#FAC775;}
+.badge-concluida{background:#1A0A0A;color:#F09595;}
+
+/* Obra row */
+.obra-row{display:flex;align-items:center;gap:16px;}
+.obra-info{flex:1;min-width:0;}
+.obra-name{font-size:14px;font-weight:500;color:#fff;}
+.obra-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;}
+.obra-meta span{font-size:12px;color:#5F5E5A;}
+.obra-actions{display:flex;gap:8px;flex-shrink:0;}
+
+/* Detail */
+.back-btn{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:8px;padding:6px 14px;font-size:12px;color:#888780;cursor:pointer;}
+.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.info-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:12px 14px;}
+.info-label{font-size:11px;color:#5F5E5A;margin-bottom:4px;}
+.info-value{font-size:13px;font-weight:500;color:#D3D1C7;}
+
+/* Etapas */
+.etapa-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;overflow:hidden;margin-bottom:10px;}
+.etapa-header{padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.etapa-info{flex:1;}
+.etapa-name{font-size:13px;font-weight:500;color:#fff;}
+.etapa-meta{font-size:11px;color:#5F5E5A;margin-top:2px;}
+.etapa-progress{margin-top:6px;height:3px;background:#2E2E38;border-radius:2px;overflow:hidden;}
+.etapa-progress-fill{height:100%;background:#1D9E75;border-radius:2px;transition:width 0.3s;}
+.etapa-actions{display:flex;gap:6px;}
+.tarefa-row{padding:10px 16px;display:flex;align-items:center;gap:12px;border-top:0.5px solid #2E2E38;}
+.tarefa-check{width:16px;height:16px;border-radius:4px;border:0.5px solid #444441;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tarefa-check.done{background:#1D9E75;border-color:#1D9E75;}
+.tarefa-text{flex:1;}
+.tarefa-name{font-size:13px;color:#D3D1C7;}
+.tarefa-name.done{color:#5F5E5A;text-decoration:line-through;}
+.tarefa-detail{display:flex;gap:10px;margin-top:2px;}
+.tarefa-detail span{font-size:11px;color:#5F5E5A;}
+.tarefa-del{background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;}
+
+/* Section sub-header */
+.sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sub-title{font-size:14px;font-weight:500;color:#fff;}
+
+/* Dashboard stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+.stat-card{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:14px 16px;}
+.stat-val{font-size:24px;font-weight:500;color:#fff;}
+.stat-lbl{font-size:11px;color:#5F5E5A;margin-top:3px;}
+.stat-tag{font-size:10px;padding:2px 7px;border-radius:999px;margin-top:6px;display:inline-block;}
+.tag-ok{background:#085041;color:#9FE1CB;}
+.tag-warn{background:#633806;color:#FAC775;}
+.tag-info{background:#26215C;color:#AFA9EC;}
+
+/* WIP */
+.wip{background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:48px;text-align:center;color:#444441;font-size:14px;}
+
+/* Loading */
+.loading{color:#5F5E5A;font-size:13px;padding:24px 0;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="login-screen" style="display:none;">
+    <div class="login-logo"></div>
+    <div class="login-title">ObraFácil</div>
+    <div class="login-sub">Gestão de obras e reformas</div>
+    <button class="btn-google" onclick="window.doLogin()">Entrar com Google</button>
+  </div>
+  <div id="main-layout" style="display:none;">
+    <div class="topbar">
+      <div class="topbar-logo">
+        <div class="topbar-dot"></div>
+        <span class="topbar-name">ObraFácil</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-email" id="user-email"></span>
+        <div class="topbar-avatar" id="user-avatar" onclick="window.doLogout()" title="Sair"></div>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="sidebar">
+        <div class="nav-section">Principal</div>
+        <div class="nav-item active" data-page="dashboard"><div class="nav-dot"></div>Dashboard</div>
+        <div class="nav-item" data-page="obras"><div class="nav-dot"></div>Obras</div>
+        <div class="nav-section">Gestão</div>
+        <div class="nav-item" data-page="financeiro"><div class="nav-dot"></div>Financeiro</div>
+        <div class="nav-item" data-page="materiais"><div class="nav-dot"></div>Materiais</div>
+        <div class="nav-item" data-page="equipe"><div class="nav-dot"></div>Equipe</div>
+        <div class="nav-section">Registro</div>
+        <div class="nav-item" data-page="diario"><div class="nav-dot"></div>Diário de obra</div>
+        <div class="nav-item" data-page="documentos"><div class="nav-dot"></div>Documentos</div>
+        <div class="nav-item" data-page="operacional"><div class="nav-dot"></div>Operacional</div>
+        <div class="nav-section">Config</div>
+        <div class="nav-item" data-page="acessos"><div class="nav-dot"></div>Acessos</div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAduXAqG6vRTI6STlFD3psMWkYY-DbXBr8",
+  authDomain: "my-calendar-ccfd0.firebaseapp.com",
+  projectId: "my-calendar-ccfd0",
+  storageBucket: "my-calendar-ccfd0.firebasestorage.app",
+  messagingSenderId: "124871692654",
+  appId: "1:124871692654:web:4c8a914cbcaea6167a317f"
+};
+
+const app = initializeApp(firebaseConfig, 'obra-facil');
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+let currentPage = 'dashboard';
+let obraAberta = null;
+
+// Auth
+window.doLogin = () => signInWithPopup(auth, provider).catch(e => alert('Erro ao entrar: ' + e.message));
+window.doLogout = () => { if(confirm('Sair?')) signOut(auth); };
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-layout').style.display = 'flex';
+    document.getElementById('user-email').textContent = user.email;
+    document.getElementById('user-avatar').textContent = user.email.substring(0,2).toUpperCase();
+    renderPage('dashboard');
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main-layout').style.display = 'none';
+  }
+});
+
+// Navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    obraAberta = null;
+    renderPage(item.dataset.page);
+  });
+});
+
+function setPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(i => {
+    i.classList.toggle('active', i.dataset.page === page);
+  });
+}
+
+// Helpers
+const uid = () => currentUser.uid;
+const obrasCol = () => collection(db, 'obras');
+const obraDoc = (id) => doc(db, 'obras', id);
+const etapasCol = (obraId) => collection(db, 'obras', obraId, 'etapas');
+const tarefasCol = (obraId) => collection(db, 'obras', obraId, 'tarefas');
+
+const fmtCurrency = v => v ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v) : '—';
+const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+const statusLabel = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
+
+// Render router
+async function renderPage(page) {
+  currentPage = page;
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading">Carregando...</div>';
+  if (page === 'dashboard') await renderDashboard();
+  else if (page === 'obras') { obraAberta ? await renderObraDetalhe() : await renderObras(); }
+  else content.innerHTML = `<div class="wip">Módulo em construção</div>`;
+}
+
+// ==================== DASHBOARD ====================
+async function renderDashboard() {
+  const q = query(obrasCol(), where('uid','==',uid()));
+  const snap = await getDocs(q);
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const total = obras.length;
+  const emAndamento = obras.filter(o => o.status === 'andamento').length;
+  const atrasadas = obras.filter(o => o.status === 'andamento' && o.data_prevista_fim && new Date(o.data_prevista_fim) < new Date()).length;
+  const totalOrcado = obras.reduce((s,o) => s + (parseFloat(o.valor_orcado)||0), 0);
+
+  const recentes = obras.slice(0,3);
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header"><div><div class="page-title">Dashboard</div><div class="page-sub">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">Obras cadastradas</div><span class="stat-tag tag-info">${emAndamento} em andamento</span></div>
+      <div class="stat-card"><div class="stat-val">${fmtCurrency(totalOrcado)}</div><div class="stat-lbl">Total orçado</div><span class="stat-tag tag-info">todas as obras</span></div>
+      <div class="stat-card"><div class="stat-val">${atrasadas}</div><div class="stat-lbl">Atrasadas</div><span class="stat-tag ${atrasadas>0?'tag-warn':'tag-ok'}">${atrasadas>0?'requer atenção':'em dia'}</span></div>
+    </div>
+    <div class="sub-header"><span class="sub-title">Obras recentes</span><span style="font-size:12px;color:#7F77DD;cursor:pointer;" onclick="window.goObras()">Ver todas</span></div>
+    ${recentes.length === 0 ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra ainda</div></div></div>' :
+      recentes.map(o => `
+        <div class="card obra-row" style="cursor:pointer;" onclick="window.abrirObra('${o.id}')">
+          <div class="obra-info">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <span class="obra-name">${o.nome}</span>
+              <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
+            </div>
+            <div class="obra-meta">
+              ${o.nome_cliente?`<span>Cliente: ${o.nome_cliente}</span>`:''}
+              ${o.tipo?`<span>${o.tipo}</span>`:''}
+              ${o.data_prevista_fim?`<span>Término: ${fmtDate(o.data_prevista_fim)}</span>`:''}
+            </div>
+          </div>
+        </div>`).join('')}
+  `;
+}
+
+window.goObras = () => {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.page==='obras'));
+  obraAberta = null;
+  renderPage('obras');
+};
+
+// ==================== OBRAS ====================
+async function renderObras() {
+  setPage('obras');
+  const q = query(obrasCol(), where('uid','==',uid()));
+  const snap = await getDocs(q);
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.created_at?.seconds||0)-(a.created_at?.seconds||0));
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
+      <button class="btn-primary" onclick="window.showObraForm()">+ Nova obra</button>
+    </div>
+    <div id="obra-form-wrap"></div>
+    <div id="obras-list">
+      ${obras.length===0 ? `<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma obra cadastrada ainda</div><div class="empty-sub">Clique em "+ Nova obra" para começar</div></div></div>` :
+        obras.map(o => `
+          <div class="card obra-row">
+            <div class="obra-info">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <span class="obra-name">${o.nome}</span>
+                <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
+              </div>
+              <div class="obra-meta">
+                ${o.nome_cliente?`<span>Cliente: ${o.nome_cliente}</span>`:''}
+                ${o.tipo?`<span>${o.tipo}</span>`:''}
+                ${o.data_prevista_fim?`<span>Término: ${fmtDate(o.data_prevista_fim)}</span>`:''}
+                ${o.valor_orcado?`<span>${fmtCurrency(o.valor_orcado)}</span>`:''}
+              </div>
+            </div>
+            <div class="obra-actions">
+              <button class="btn-primary btn-sm" onclick="window.abrirObra('${o.id}')">Ver</button>
+              <button class="btn-secondary btn-sm" onclick="window.deletarObra('${o.id}')">Excluir</button>
+            </div>
+          </div>`).join('')}
+    </div>
+  `;
+}
+
+window.showObraForm = (dados={}) => {
+  const edit = !!dados.id;
+  document.getElementById('obra-form-wrap').innerHTML = `
+    <div class="form-wrap">
+      <div class="form-title"><span>${edit?'Editar obra':'Nova obra'}</span><button class="btn-close" onclick="document.getElementById('obra-form-wrap').innerHTML=''">×</button></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Nome da obra *</label><input class="form-input" id="of-nome" value="${dados.nome||''}" placeholder="Ex: Residência Silva — Moema"></div>
+        <div class="form-group"><label class="form-label">Tipo</label>
+          <select class="form-input" id="of-tipo">
+            <option value="">Selecionar</option>
+            ${['Residencial','Comercial','Industrial','Reforma','Outro'].map(t=>`<option value="${t}" ${dados.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-input" id="of-status">
+            ${Object.entries(statusLabel).map(([k,v])=>`<option value="${k}" ${(dados.status||'planejamento')===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="of-inicio" value="${dados.data_inicio||''}"></div>
+        <div class="form-group"><label class="form-label">Previsão de término</label><input type="date" class="form-input" id="of-fim" value="${dados.data_prevista_fim||''}"></div>
+        <div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="of-cliente" value="${dados.nome_cliente||''}" placeholder="Nome completo"></div>
+        <div class="form-group"><label class="form-label">Contato do cliente</label><input class="form-input" id="of-contato" value="${dados.contato_cliente||''}" placeholder="(11) 99999-9999"></div>
+        <div class="form-group"><label class="form-label">Valor orçado (R$)</label><input type="number" class="form-input" id="of-valor" value="${dados.valor_orcado||''}" placeholder="0,00"></div>
+        <div class="form-group"><label class="form-label">Responsável técnico</label><input class="form-input" id="of-resp" value="${dados.responsavel_tecnico||''}" placeholder="Nome do responsável"></div>
+        <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="of-end" value="${dados.endereco||''}" placeholder="Rua, número, bairro, cidade — UF"></div>
+        <div class="form-group form-full"><label class="form-label">Descrição</label><textarea class="form-input form-textarea" id="of-desc" placeholder="Descrição da obra...">${dados.descricao||''}</textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="document.getElementById('obra-form-wrap').innerHTML=''">Cancelar</button>
+        <button class="btn-primary" onclick="window.salvarObra('${dados.id||''}')">Salvar obra</button>
+      </div>
+    </div>
+  `;
+};
+
+window.salvarObra = async (id) => {
+  const nome = document.getElementById('of-nome').value.trim();
+  if (!nome) return alert('Nome da obra é obrigatório');
+  const dados = {
+    nome, uid: uid(),
+    tipo: document.getElementById('of-tipo').value,
+    status: document.getElementById('of-status').value,
+    data_inicio: document.getElementById('of-inicio').value,
+    data_prevista_fim: document.getElementById('of-fim').value,
+    nome_cliente: document.getElementById('of-cliente').value,
+    contato_cliente: document.getElementById('of-contato').value,
+    valor_orcado: parseFloat(document.getElementById('of-valor').value)||null,
+    responsavel_tecnico: document.getElementById('of-resp').value,
+    endereco: document.getElementById('of-end').value,
+    descricao: document.getElementById('of-desc').value,
+    created_at: serverTimestamp()
+  };
+  if (id) { await updateDoc(obraDoc(id), dados); }
+  else { await addDoc(obrasCol(), dados); }
+  await renderObras();
+};
+
+window.deletarObra = async (id) => {
+  if (!confirm('Excluir esta obra?')) return;
+  await deleteDoc(obraDoc(id));
+  await renderObras();
+};
+
+// ==================== OBRA DETALHE ====================
+window.abrirObra = async (id) => {
+  const snap = await getDoc(obraDoc(id));
+  obraAberta = {id, ...snap.data()};
+  setPage('obras');
+  await renderObraDetalhe();
+};
+
+async function renderObraDetalhe() {
+  const o = obraAberta;
+  const etapasSnap = await getDocs(query(etapasCol(o.id), orderBy('ordem')));
+  const tarefasSnap = await getDocs(tarefasCol(o.id));
+  const etapas = etapasSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const tarefas = tarefasSnap.docs.map(d => ({id:d.id,...d.data()}));
+
+  document.getElementById('content').innerHTML = `
+    <div class="detail-header">
+      <button class="back-btn" onclick="window.voltarObras()">← Voltar</button>
+      <span class="page-title">${o.nome}</span>
+      <span class="badge badge-${o.status}">${statusLabel[o.status]||o.status}</span>
+      <button class="btn-secondary btn-sm" onclick="window.editarObra()">Editar</button>
+    </div>
+    <div id="obra-edit-form"></div>
+    <div class="info-grid">
+      ${[['Cliente',o.nome_cliente||'—'],['Tipo',o.tipo||'—'],['Início',fmtDate(o.data_inicio)],['Previsão fim',fmtDate(o.data_prevista_fim)],['Orçamento',fmtCurrency(o.valor_orcado)],['Responsável',o.responsavel_tecnico||'—']].map(([l,v])=>`
+        <div class="info-card"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('')}
+    </div>
+    ${o.endereco?`<div class="card card-sm" style="margin-bottom:10px;"><div class="info-label">Endereço</div><div style="font-size:13px;color:#D3D1C7;margin-top:4px;">${o.endereco}</div></div>`:''}
+    ${o.descricao?`<div class="card card-sm" style="margin-bottom:16px;"><div class="info-label">Descrição</div><div style="font-size:13px;color:#D3D1C7;margin-top:4px;">${o.descricao}</div></div>`:''}
+
+    <div class="sub-header">
+      <span class="sub-title">Etapas e tarefas</span>
+      <button class="btn-primary btn-sm" onclick="window.showEtapaForm()">+ Nova etapa</button>
+    </div>
+    <div id="etapa-form-wrap"></div>
+    <div id="etapas-list">
+      ${etapas.length===0 ? '<div class="card"><div class="empty-state"><div class="empty-title">Nenhuma etapa cadastrada</div></div></div>' :
+        etapas.map(et => {
+          const ets = tarefas.filter(t => t.etapa_id === et.id);
+          const done = ets.filter(t => t.status==='concluida').length;
+          const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
+          return `
+            <div class="etapa-card" id="etapa-${et.id}">
+              <div class="etapa-header">
+                <div class="etapa-info">
+                  <div class="etapa-name">${et.nome}</div>
+                  <div class="etapa-meta">${ets.length?`${done}/${ets.length} tarefas · ${pct}%`:'Sem tarefas'}${et.data_prevista_fim?` · Fim: ${fmtDate(et.data_prevista_fim)}`:''}</div>
+                  ${ets.length?`<div class="etapa-progress"><div class="etapa-progress-fill" style="width:${pct}%"></div></div>`:''}
+                </div>
+                <div class="etapa-actions">
+                  <button class="btn-primary btn-xs" onclick="window.showTarefaForm('${et.id}')">+ Tarefa</button>
+                  <button class="btn-secondary btn-xs" onclick="window.deletarEtapa('${et.id}')">Excluir</button>
+                </div>
+              </div>
+              <div id="tarefa-form-${et.id}"></div>
+              ${ets.map(t => `
+                <div class="tarefa-row">
+                  <div class="tarefa-check ${t.status==='concluida'?'done':''}" onclick="window.toggleTarefa('${t.id}','${t.status}')">
+                    ${t.status==='concluida'?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+                  </div>
+                  <div class="tarefa-text">
+                    <div class="tarefa-name ${t.status==='concluida'?'done':''}">${t.nome}</div>
+                    <div class="tarefa-detail">
+                      ${t.responsavel?`<span>${t.responsavel}</span>`:''}
+                      ${t.data_prevista?`<span>${fmtDate(t.data_prevista)}</span>`:''}
+                      ${t.prioridade&&t.prioridade!=='normal'?`<span style="color:${t.prioridade==='urgente'?'#F09595':'#FAC775'}">${t.prioridade}</span>`:''}
+                    </div>
+                  </div>
+                  <button class="tarefa-del" onclick="window.deletarTarefa('${t.id}')">×</button>
+                </div>`).join('')}
+            </div>`;
+        }).join('')}
+    </div>
+  `;
+}
+
+window.voltarObras = () => { obraAberta = null; renderPage('obras'); };
+
+window.editarObra = () => {
+  window.showObraForm(obraAberta);
+  document.getElementById('obra-form-wrap').innerHTML = document.getElementById('obra-form-wrap').innerHTML;
+  window.showObraForm({...obraAberta});
+  const wrap = document.getElementById('obra-edit-form');
+  const formWrap = document.getElementById('obra-form-wrap');
+  if (formWrap) wrap.innerHTML = formWrap.innerHTML;
+};
+
+window.showEtapaForm = () => {
+  document.getElementById('etapa-form-wrap').innerHTML = `
+    <div class="form-wrap" style="margin-bottom:14px;">
+      <div class="form-title"><span>Nova etapa</span><button class="btn-close" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">×</button></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Nome da etapa *</label><input class="form-input" id="et-nome" placeholder="Ex: Fundação"></div>
+        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="et-inicio"></div>
+        <div class="form-group"><label class="form-label">Previsão de fim</label><input type="date" class="form-input" id="et-fim"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="document.getElementById('etapa-form-wrap').innerHTML=''">Cancelar</button>
+        <button class="btn-primary" onclick="window.salvarEtapa()">Salvar etapa</button>
+      </div>
+    </div>
+  `;
+};
+
+window.salvarEtapa = async () => {
+  const nome = document.getElementById('et-nome').value.trim();
+  if (!nome) return alert('Nome da etapa é obrigatório');
+  const etapasSnap = await getDocs(etapasCol(obraAberta.id));
+  await addDoc(etapasCol(obraAberta.id), {
+    nome, obra_id: obraAberta.id,
+    ordem: etapasSnap.size + 1,
+    status: 'pendente',
+    data_inicio: document.getElementById('et-inicio').value,
+    data_prevista_fim: document.getElementById('et-fim').value,
+    created_at: serverTimestamp()
+  });
+  await renderObraDetalhe();
+};
+
+window.deletarEtapa = async (id) => {
+  if (!confirm('Excluir esta etapa?')) return;
+  await deleteDoc(doc(db,'obras',obraAberta.id,'etapas',id));
+  await renderObraDetalhe();
+};
+
+window.showTarefaForm = (etapaId) => {
+  document.getElementById(`tarefa-form-${etapaId}`).innerHTML = `
+    <div style="padding:12px 16px;background:#16161A;border-top:0.5px solid #2E2E38;">
+      <div class="form-grid" style="margin-bottom:10px;">
+        <div class="form-group form-full"><label class="form-label">Nome da tarefa *</label><input class="form-input" id="tf-nome-${etapaId}" placeholder="Ex: Escavar fundação"></div>
+        <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-resp-${etapaId}" placeholder="Nome"></div>
+        <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-data-${etapaId}"></div>
+        <div class="form-group"><label class="form-label">Prioridade</label>
+          <select class="form-input" id="tf-prio-${etapaId}">
+            <option value="normal">Normal</option>
+            <option value="alta">Alta</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary btn-sm" onclick="document.getElementById('tarefa-form-${etapaId}').innerHTML=''">Cancelar</button>
+        <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+      </div>
+    </div>
+  `;
+};
+
+window.salvarTarefa = async (etapaId) => {
+  const nome = document.getElementById(`tf-nome-${etapaId}`).value.trim();
+  if (!nome) return alert('Nome da tarefa é obrigatório');
+  await addDoc(tarefasCol(obraAberta.id), {
+    nome, etapa_id: etapaId, obra_id: obraAberta.id,
+    responsavel: document.getElementById(`tf-resp-${etapaId}`).value,
+    data_prevista: document.getElementById(`tf-data-${etapaId}`).value,
+    prioridade: document.getElementById(`tf-prio-${etapaId}`).value,
+    status: 'pendente',
+    created_at: serverTimestamp()
+  });
+  await renderObraDetalhe();
+};
+
+window.toggleTarefa = async (id, status) => {
+  const novoStatus = status === 'concluida' ? 'pendente' : 'concluida';
+  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {
+    status: novoStatus,
+    data_conclusao: novoStatus === 'concluida' ? new Date().toISOString().split('T')[0] : null
+  });
+  await renderObraDetalhe();
+};
+
+window.deletarTarefa = async (id) => {
+  await deleteDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
+  await renderObraDetalhe();
+};
+
+</script>
+</body>
 </html>
