@@ -149,8 +149,14 @@ let obraAberta = null;
 window.doLogin = () => signInWithPopup(auth, provider).catch(e => alert('Erro: ' + e.message));
 window.doLogout = () => { if(confirm('Sair?')) signOut(auth); };
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   currentUser = user;
+  // Check for client token first
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('token')) {
+    await checkClientToken();
+    return;
+  }
   if (user) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = 'flex';
@@ -194,6 +200,7 @@ async function renderPage(page) {
   else if (page === 'diario') await pgDiario();
   else if (page === 'documentos') await pgDocumentos();
   else if (page === 'operacional') await pgOperacional();
+  else if (page === 'acessos') await pgAcessos();
   else el.innerHTML = '<div class="wip">Módulo em construção</div>';
 }
 
@@ -1157,6 +1164,228 @@ window.resolverNC = async (oid, id) => {
   window.loadOp(oid);
 };
 window.delNC = async (oid, id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'nao_conformidades',id)); window.loadOp(oid); };
+
+
+// ══ ACESSOS ══
+async function pgAcessos() {
+  setPage('acessos');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Acessos</div><div class="page-sub">Convites por link para clientes acompanharem a obra</div></div>';
+
+  if (!obras.length) {
+    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    document.getElementById('content').innerHTML = html;
+    return;
+  }
+
+  // Load all access tokens for all obras
+  const acessosSnap = await Promise.all(obras.map(o => getDocs(sub(o.id,'acessos'))));
+  const todoAcessos = [];
+  acessosSnap.forEach((snap, i) => {
+    snap.docs.forEach(d => todoAcessos.push({id:d.id, obraId:obras[i].id, obraNome:obras[i].nome, ...d.data()}));
+  });
+
+  const base = window.location.origin + window.location.pathname;
+
+  html += '<div class="sub-header"><span class="sub-title">Links de acesso ativos</span><button class="btn-primary btn-sm" onclick="window.showAcessoForm()">+ Novo convite</button></div>';
+  html += '<div id="acesso-form-wrap"></div>';
+
+  if (!todoAcessos.length) {
+    html += '<div class="card"><div class="empty-state">Nenhum convite gerado ainda<br><small style="color:#333;margin-top:6px;display:block;">Clique em "+ Novo convite" para gerar um link para o cliente</small></div></div>';
+  } else {
+    todoAcessos.forEach(a => {
+      const link = base + '?token=' + a.token;
+      html += '<div class="card" style="padding:14px 18px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+          '<div>' +
+            '<div style="font-size:14px;font-weight:500;color:#fff;">' + (a.nome_cliente||'Cliente') + '</div>' +
+            '<div style="font-size:12px;color:#5F5E5A;margin-top:2px;">Obra: ' + a.obraNome + (a.email_cliente?' · '+a.email_cliente:'') + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<span class="badge ' + (a.ativo!==false?'badge-andamento':'badge-pausada') + '">' + (a.ativo!==false?'Ativo':'Inativo') + '</span>' +
+            '<button onclick="window.togAcesso(\'' + a.obraId + '\',\'' + a.id + '\',\'' + (a.ativo!==false) + '\')" class="btn-secondary btn-sm">' + (a.ativo!==false?'Desativar':'Ativar') + '</button>' +
+            '<button onclick="window.delAcesso(\'' + a.obraId + '\',\'' + a.id + '\')" class="btn-secondary btn-sm">Excluir</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;background:#16161A;border:0.5px solid #2E2E38;border-radius:8px;padding:10px 12px;">' +
+          '<span style="font-size:11px;color:#5F5E5A;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + link + '</span>' +
+          '<button onclick="window.copiarLink(\'' + link + '\')" style="background:#534AB7;border:none;border-radius:6px;padding:5px 12px;font-size:11px;color:#fff;cursor:pointer;flex-shrink:0;">Copiar link</button>' +
+        '</div>' +
+        (a.ultimo_acesso ? '<div style="font-size:11px;color:#5F5E5A;margin-top:6px;">Último acesso: ' + new Date(a.ultimo_acesso).toLocaleDateString('pt-BR') + '</div>' : '') +
+      '</div>';
+    });
+  }
+
+  html += '<div style="margin-top:28px;background:#1E1E24;border:0.5px solid #2E2E38;border-radius:12px;padding:20px;">' +
+    '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:8px;">Como funciona</div>' +
+    '<div style="font-size:12px;color:#5F5E5A;line-height:1.8;">' +
+      '1. Gere um link para cada cliente · 2. Envie pelo WhatsApp ou e-mail · ' +
+      '3. O cliente abre o link e vê o andamento da obra sem precisar criar conta · ' +
+      '4. Você controla quais informações são visíveis' +
+    '</div>' +
+  '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+window.showAcessoForm = async () => {
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  document.getElementById('acesso-form-wrap').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:20px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Novo convite</span><button class="btn-close" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Obra *</label><select class="form-input" id="ac-obra"><option value="">Selecionar</option>' + obras.map(o => '<option value="' + o.id + '">' + o.nome + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="ac-nome" placeholder="Ex: João Silva"></div>' +
+        '<div class="form-group form-full"><label class="form-label">E-mail (opcional)</label><input class="form-input" id="ac-email" placeholder="cliente@email.com"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.gerarLink()">Gerar link</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.gerarLink = async () => {
+  const obraId = document.getElementById('ac-obra').value;
+  if (!obraId) return alert('Selecione uma obra');
+  const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  await addDoc(sub(obraId,'acessos'), {
+    nome_cliente: document.getElementById('ac-nome').value,
+    email_cliente: document.getElementById('ac-email').value,
+    token,
+    ativo: true,
+    created_at: serverTimestamp()
+  });
+  await pgAcessos();
+};
+
+window.togAcesso = async (obraId, id, ativo) => {
+  await updateDoc(doc(db,'obras',obraId,'acessos',id), {ativo: ativo==='true' ? false : true});
+  await pgAcessos();
+};
+
+window.delAcesso = async (obraId, id) => {
+  if (!confirm('Excluir este acesso?')) return;
+  await deleteDoc(doc(db,'obras',obraId,'acessos',id));
+  await pgAcessos();
+};
+
+window.copiarLink = (link) => {
+  navigator.clipboard.writeText(link).then(() => alert('Link copiado!')).catch(() => {
+    prompt('Copie o link abaixo:', link);
+  });
+};
+
+// ══ PORTAL DO CLIENTE (acesso via token) ══
+async function checkClientToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (!token) return false;
+
+  // Find obra with this token
+  const obrasSnap = await getDocs(obrasCol());
+  let obraEncontrada = null;
+  let acessoDoc = null;
+
+  for (const obraDoc of obrasSnap.docs) {
+    const acessosSnap = await getDocs(query(sub(obraDoc.id,'acessos'), where('token','==',token), where('ativo','==',true)));
+    if (!acessosSnap.empty) {
+      obraEncontrada = {id:obraDoc.id,...obraDoc.data()};
+      acessoDoc = {id:acessosSnap.docs[0].id,...acessosSnap.docs[0].data()};
+      // Update last access
+      await updateDoc(doc(db,'obras',obraDoc.id,'acessos',acessosSnap.docs[0].id), {ultimo_acesso: new Date().toISOString()});
+      break;
+    }
+  }
+
+  if (!obraEncontrada) {
+    document.getElementById('app').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#16161A;font-family:sans-serif;">' +
+        '<div style="text-align:center;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:#7F77DD;margin:0 auto 16px;"></div>' +
+          '<div style="font-size:16px;color:#fff;margin-bottom:8px;">Link inválido ou expirado</div>' +
+          '<div style="font-size:13px;color:#5F5E5A;">Entre em contato com o responsável pela obra</div>' +
+        '</div>' +
+      '</div>';
+    return true;
+  }
+
+  await renderPortalCliente(obraEncontrada, acessoDoc);
+  return true;
+}
+
+async function renderPortalCliente(obra, acesso) {
+  const SL = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
+  const [etSnap, tSnap, dirSnap] = await Promise.all([
+    getDocs(query(sub(obra.id,'etapas'), orderBy('ordem'))),
+    getDocs(sub(obra.id,'tarefas')),
+    getDocs(query(sub(obra.id,'diario'), orderBy('data','desc')))
+  ]);
+  const etapas = etSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const tarefas = tSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const diario = dirSnap.docs.map(d=>({id:d.id,...d.data()})).slice(0,5);
+
+  const totalTarefas = tarefas.length;
+  const concluidas = tarefas.filter(t=>t.status==='concluida').length;
+  const progresso = totalTarefas ? Math.round((concluidas/totalTarefas)*100) : 0;
+
+  let html = '<div style="min-height:100vh;background:#16161A;font-family:sans-serif;padding:0;">' +
+    '<div style="background:#1E1E24;border-bottom:0.5px solid #2E2E38;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;">' +
+      '<div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#7F77DD;"></div><span style="font-size:15px;font-weight:500;color:#fff;">ObraFácil</span></div>' +
+      '<span style="font-size:12px;color:#5F5E5A;">Área do cliente</span>' +
+    '</div>' +
+    '<div style="padding:24px 28px;">' +
+      '<div style="margin-bottom:20px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+          '<span style="font-size:20px;font-weight:500;color:#fff;">' + obra.nome + '</span>' +
+          '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#26215C;color:#AFA9EC;">' + (SL[obra.status]||obra.status) + '</span>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">' +
+          (obra.nome_cliente?'<div style="background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px;">Cliente</div><div style="font-size:13px;font-weight:500;color:#D3D1C7;">' + obra.nome_cliente + '</div></div>':'') +
+          (obra.data_prevista_fim?'<div style="background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px;">Previsão de término</div><div style="font-size:13px;font-weight:500;color:#D3D1C7;">' + fmtD(obra.data_prevista_fim) + '</div></div>':'') +
+          '<div style="background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px;">Progresso geral</div><div style="font-size:22px;font-weight:500;color:#fff;">' + progresso + '%</div><div style="height:4px;background:#2E2E38;border-radius:2px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:' + progresso + '%;background:#1D9E75;border-radius:2px;"></div></div></div>' +
+        '</div>' +
+      '</div>';
+
+  // Etapas
+  if (etapas.length) {
+    html += '<div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:12px;">Etapas</div>';
+    etapas.forEach(et => {
+      const ets = tarefas.filter(t=>t.etapa_id===et.id);
+      const done = ets.filter(t=>t.status==='concluida').length;
+      const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
+      html += '<div style="background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-size:13px;font-weight:500;color:#fff;">' + et.nome + '</span>' +
+          '<span style="font-size:12px;color:#5F5E5A;">' + pct + '%</span>' +
+        '</div>' +
+        (ets.length?'<div style="margin-top:8px;height:4px;background:#2E2E38;border-radius:2px;overflow:hidden;"><div style="height:100%;width:' + pct + '%;background:#1D9E75;border-radius:2px;"></div></div>':'') +
+        (et.data_prevista_fim?'<div style="font-size:11px;color:#5F5E5A;margin-top:4px;">Previsão: ' + fmtD(et.data_prevista_fim) + '</div>':'') +
+      '</div>';
+    });
+  }
+
+  // Diário recente
+  if (diario.length) {
+    html += '<div style="font-size:14px;font-weight:500;color:#fff;margin:20px 0 12px;">Registros recentes</div>';
+    diario.forEach(r => {
+      html += '<div style="background:#1E1E24;border:0.5px solid #2E2E38;border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+          '<span style="font-size:13px;font-weight:500;color:#fff;">' + fmtD(r.data) + '</span>' +
+          (r.clima?'<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#26215C;color:#AFA9EC;">' + r.clima + '</span>':'') +
+        '</div>' +
+        (r.descricao?'<div style="font-size:13px;color:#D3D1C7;">' + r.descricao + '</div>':'') +
+        (r.fotos&&r.fotos.length?'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">' + r.fotos.map(f=>'<img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(\''+f+'\',\'_blank\')">').join('') + '</div>':'') +
+      '</div>';
+    });
+  }
+
+  html += '</div></div>';
+  document.getElementById('app').innerHTML = html;
+}
 
 </script>
 </body>
