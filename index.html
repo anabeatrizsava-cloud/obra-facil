@@ -147,6 +147,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
           <span class="nav-tip">Acessos</span>
         </div>
+        <div class="nav-item" data-page="suporte" style="width:36px;height:36px;padding:0;justify-content:center;border-radius:8px;position:relative;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.8" fill="currentColor"/></svg>
+          <span class="nav-tip">Suporte</span>
+        </div>
       </div>
       <div class="content" id="content"></div>
     </div>
@@ -244,6 +248,7 @@ async function renderPage(page) {
   else if (page === 'documentos') await pgDocumentos();
   else if (page === 'operacional') await pgOperacional();
   else if (page === 'acessos') await pgAcessos();
+  else if (page === 'suporte') await pgSuporte();
   else el.innerHTML = '<div class="wip">Módulo em construção</div>';
 }
 
@@ -1239,7 +1244,6 @@ async function loadNotifications() {
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
 
     for (const o of obras) {
-      // Tarefas vencendo hoje
       const tSnap = await getDocs(sub(o.id,'tarefas'));
       tSnap.docs.forEach(d => {
         const t = d.data();
@@ -1247,7 +1251,6 @@ async function loadNotifications() {
           notifs.push({tipo:'tarefa', obra:o.nome, texto: t.nome, icon:'📋'});
         }
       });
-      // Contas vencendo hoje
       const cSnap = await getDocs(sub(o.id,'contas'));
       cSnap.docs.forEach(d => {
         const c = d.data();
@@ -1255,7 +1258,6 @@ async function loadNotifications() {
           notifs.push({tipo:'conta', obra:o.nome, texto: c.descricao + ' — ' + fmtR(c.valor), icon:'💰'});
         }
       });
-      // NCs abertas com prazo hoje
       const ncSnap = await getDocs(sub(o.id,'nao_conformidades'));
       ncSnap.docs.forEach(d => {
         const nc = d.data();
@@ -1266,25 +1268,49 @@ async function loadNotifications() {
     }
   } catch(e) {}
 
-  // Update bell dot
+  // Notificações de suporte
+  try {
+    const nSnap = await getDocs(query(
+      collection(db,'notificacoes'),
+      where('para','==',currentUser.email),
+      where('lida','==',false)
+    ));
+    nSnap.docs.forEach(d => {
+      const n = d.data();
+      notifs.push({
+        tipo:'suporte',
+        obra: n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte',
+        texto: n.texto,
+        icon: n.tipo === 'suporte_resolvido' ? '✅' : '🎫',
+        notifId: d.id
+      });
+    });
+  } catch(e) {}
+
   const dot = document.getElementById('bell-dot');
   if (dot) dot.style.display = notifs.length ? 'block' : 'none';
 
   if (!notifs.length) {
-    content.innerHTML = '<div style="padding:16px;text-align:center;font-size:12px;color:#484F58;">Nenhuma notificação para hoje</div>';
+    content.innerHTML = '<div style="padding:16px;text-align:center;font-size:12px;color:#484F58;">Nenhuma notificação</div>';
     return;
   }
 
   content.innerHTML = notifs.map(n =>
-    '<div style="padding:10px 16px;border-bottom:0.5px solid #21262D;display:flex;align-items:flex-start;gap:10px;">' +
+    '<div style="padding:10px 16px;border-bottom:0.5px solid #21262D;display:flex;align-items:flex-start;gap:10px;" ' +
+    (n.notifId ? 'onclick="window.marcarLida('' + n.notifId + '')" style="cursor:pointer;padding:10px 16px;border-bottom:0.5px solid #21262D;display:flex;align-items:flex-start;gap:10px;"' : '') + '>' +
       '<span style="font-size:14px;flex-shrink:0;">' + n.icon + '</span>' +
       '<div>' +
         '<div style="font-size:12px;color:#fff;">' + n.texto + '</div>' +
-        '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + n.obra + '</div>' +
+        '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + n.obra + (n.notifId?' · clique para marcar como lida':'') + '</div>' +
       '</div>' +
     '</div>'
   ).join('');
 }
+
+window.marcarLida = async (notifId) => {
+  await updateDoc(doc(db,'notificacoes',notifId), {lida: true});
+  await loadNotifications();
+};
 
 async function initBell() {
   if (!currentUser) return;
@@ -1570,6 +1596,167 @@ async function renderPortalCliente(obra, acesso) {
   html += '</div></div>';
   document.getElementById('app').innerHTML = html;
 }
+
+
+// ══ SUPORTE ══
+const ADMIN_EMAIL = 'ana.beatriz.sava@gmail.com';
+const suporteCol = () => collection(db, 'suporte');
+
+const TIPO_LABELS = { melhoria: 'Melhoria', bug: 'Bug' };
+const TIPO_BADGE = { melhoria: 'background:#1C2333;color:#8B949E', bug: 'background:#2A1014;color:#9A4A53' };
+const STATUS_LABELS = { aberta: 'Aberta', analise: 'Em análise', resolvida: 'Resolvida' };
+const STATUS_BADGE = {
+  aberta: 'background:#2A1C0A;color:#8C603E',
+  analise: 'background:#1C2333;color:#8B949E',
+  resolvida: 'background:#1A2820;color:#3FB950'
+};
+
+async function pgSuporte() {
+  setPage('suporte');
+  const isAdmin = currentUser.email === ADMIN_EMAIL;
+
+  // Load tickets
+  let q;
+  if (isAdmin) {
+    q = query(suporteCol(), orderBy('created_at', 'desc'));
+  } else {
+    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
+  }
+
+  const snap = await getDocs(q);
+  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
+
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+    '<div><div class="page-title">Suporte</div><div class="page-sub">' +
+      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
+    '</div></div>' +
+    (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
+  '</div>';
+
+  if (isAdmin && abertas > 0) {
+    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
+      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
+    '</div>';
+  }
+
+  html += '<div id="ticket-form-wrap"></div>';
+
+  if (!tickets.length) {
+    html += '<div class="card"><div class="empty-state">' +
+      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
+    '</div></div>';
+  } else {
+    tickets.forEach(t => {
+      const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+      const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+              '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+            '</div>' +
+            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
+          '</div>' +
+          (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
+            (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
+            '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
+          '</div>' : '') +
+        '</div>' +
+        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
+        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
+          '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+          '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
+        '</div>' : '') +
+      '</div>';
+    });
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+window.showTicketForm = () => {
+  document.getElementById('ticket-form-wrap').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:20px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Tipo *</label>' +
+          '<select class="form-input" id="tk-tipo">' +
+            '<option value="melhoria">Melhoria — quero uma nova funcionalidade</option>' +
+            '<option value="bug">Bug — algo não está funcionando</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="tk-titulo" placeholder="Ex: Adicionar campo de endereço na obra"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" style="height:96px;resize:none;" id="tk-desc" placeholder="Descreva em detalhes o que você precisa ou o problema que encontrou..."></textarea></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarTicket()">Enviar demanda</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarTicket = async () => {
+  const titulo = document.getElementById('tk-titulo').value.trim();
+  const desc = document.getElementById('tk-desc').value.trim();
+  if (!titulo) return alert('Título obrigatório');
+  if (!desc) return alert('Descrição obrigatória');
+
+  await addDoc(suporteCol(), {
+    titulo,
+    descricao: desc,
+    tipo: document.getElementById('tk-tipo').value,
+    status: 'aberta',
+    user_email: currentUser.email,
+    user_uid: uid(),
+    created_at: serverTimestamp()
+  });
+
+  // Notificação para o admin no sininho
+  await addDoc(collection(db,'notificacoes'), {
+    para: ADMIN_EMAIL,
+    tipo: 'suporte',
+    texto: 'Nova demanda de ' + currentUser.email + ': ' + titulo,
+    lida: false,
+    created_at: serverTimestamp()
+  });
+
+  await pgSuporte();
+};
+
+window.avancarTicket = async (id, novoStatus) => {
+  await updateDoc(doc(db,'suporte',id), { status: novoStatus });
+  await pgSuporte();
+};
+
+window.resolverTicket = async (id) => {
+  const resposta = prompt('Digite a resposta/resolução para o usuário:');
+  if (!resposta) return;
+
+  // Get ticket to notify user
+  const ticketSnap = await getDoc(doc(db,'suporte',id));
+  const ticket = ticketSnap.data();
+
+  await updateDoc(doc(db,'suporte',id), {
+    status: 'resolvida',
+    resposta,
+    resolved_at: serverTimestamp()
+  });
+
+  // Notificação para o usuário que abriu
+  await addDoc(collection(db,'notificacoes'), {
+    para: ticket.user_email,
+    tipo: 'suporte_resolvido',
+    texto: 'Sua demanda "' + ticket.titulo + '" foi resolvida!',
+    lida: false,
+    created_at: serverTimestamp()
+  });
+
+  await pgSuporte();
+};
 
 </script>
 </body>
