@@ -89,45 +89,20 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
 /* ── MOBILE ── */
-#bottom-nav{display:none;}
-#more-drawer{display:none;}
-
-/* bottom nav full styles */
-#bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  height:56px;
-  background:#0D1117;
-  border-top:0.5px solid #21262D;
-  z-index:200;
-  align-items:stretch;
-  justify-content:space-around;
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-#more-drawer{
-  position:fixed;bottom:56px;left:0;right:0;
-  background:#161B22;
-  border-top:0.5px solid #30363D;
-  z-index:199;
-  padding:4px 0;
-}
-
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#0D1117;border-top:0.5px solid #21262D;z-index:200;align-items:stretch;justify-content:space-around;}
+#more-drawer{display:none;position:fixed;bottom:56px;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;z-index:199;padding:4px 0;}
 @media(max-width:768px){
-  body{overflow:hidden;position:fixed;width:100%;top:0;left:0;}
-  #app{display:flex;flex-direction:column;overflow:hidden;}
-  #main-layout{display:flex!important;flex-direction:column;overflow:hidden;}
-  .topbar{flex-shrink:0;padding:0 14px;}
+  .topbar{padding:0 14px;}
   .topbar-email{display:none;}
-  .body-wrap{flex:1;overflow:hidden;min-height:0;}
   .sidebar{display:none!important;}
-  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 84px;min-height:0;}
-  #bottom-nav{display:flex!important;}
+  .nav-tip{display:none!important;}
+  .content{padding:16px 14px 80px;}
   .form-grid{grid-template-columns:1fr!important;}
   .form-full{grid-column:1!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
   .info-grid{grid-template-columns:1fr 1fr!important;}
   .page-title{font-size:16px;}
   .card{margin-bottom:8px;}
-  .nav-tip{display:none!important;}
 }
 </style>
 </head>
@@ -338,6 +313,7 @@ onAuthStateChanged(auth, async user => {
     currentPerms = roleData.modulos;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = '';
+    setTimeout(applyMobileLayout, 50);
     document.getElementById('user-email').textContent = user.email;
     document.getElementById('user-avatar').textContent = user.email.substring(0,2).toUpperCase();
     applyRoleToSidebar();
@@ -1915,17 +1891,30 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 });
 
 
-// ── MOBILE VIEWPORT HEIGHT FIX ──
-function setVH() {
-  if (window.innerWidth > 768) return;
+// ── MOBILE LAYOUT FIX ──
+function applyMobileLayout() {
+  const isMobile = window.innerWidth <= 768;
   const h = window.innerHeight;
-  document.documentElement.style.setProperty('--vh', h + 'px');
-  document.body.style.height = h + 'px';
-  document.getElementById('app').style.height = h + 'px';
+  const bn = document.getElementById('bottom-nav');
+  
+  if (isMobile) {
+    // Force exact pixel height on everything
+    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:' + h + 'px;';
+    document.getElementById('app').style.cssText = 'width:100%;height:' + h + 'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;';
+    const ml = document.getElementById('main-layout');
+    if (ml && ml.style.display !== 'none') {
+      ml.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;height:' + (h) + 'px;';
+    }
+    if (bn) bn.style.display = 'flex';
+  } else {
+    document.body.style.cssText = '';
+    document.getElementById('app').style.cssText = '';
+    if (bn) bn.style.display = 'none';
+  }
 }
-setVH();
-window.addEventListener('resize', setVH);
-window.addEventListener('orientationchange', () => setTimeout(setVH, 300));
+applyMobileLayout();
+window.addEventListener('resize', applyMobileLayout);
+window.addEventListener('orientationchange', () => setTimeout(applyMobileLayout, 300));
 
 </script>
 </body>
