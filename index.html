@@ -1756,16 +1756,20 @@ async function pgSuporte() {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
 
-  // Load tickets
+  // Load tickets — orderBy sem índice composto causa erro silencioso no Firestore
+  // Para não-admin: filtra por email sem orderBy e ordena no JS
   let q;
   if (isAdmin) {
     q = query(suporteCol(), orderBy('created_at', 'desc'));
   } else {
-    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
+    q = query(suporteCol(), where('user_email', '==', currentUser.email));
   }
 
   const snap = await getDocs(q);
-  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  if (!isAdmin) {
+    tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
+  }
   const abertas = tickets.filter(t => t.status !== 'resolvida').length;
 
   let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
