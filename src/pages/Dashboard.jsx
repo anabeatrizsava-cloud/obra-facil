@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import Obras from './Obras'
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', section: 'Principal' },
@@ -34,7 +35,7 @@ export default function Dashboard({ session }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 12, color: '#5F5E5A' }}>{session.user.email}</span>
-          <div onClick={handleLogout} title="Sair" style={{ width: 28, height: 28, borderRadius: '50%', background: '#3C3489', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#CECBF6', cursor: 'pointer' }}>
+          <div onClick={handleLogout} title="Sair" style={{ width: 28, height: 28, borderRadius: '50%', background: '#3C3089', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 500, color: '#CECBF6', cursor: 'pointer' }}>
             {initials}
           </div>
         </div>
@@ -62,17 +63,23 @@ export default function Dashboard({ session }) {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ fontSize: 18, fontWeight: 500, color: '#fff', margin: 0 }}>
-              {NAV.find(n => n.key === active)?.label}
-            </h1>
-            <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 0' }}>
-              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-          </div>
-          <div style={{ background: '#1E1E24', border: '0.5px solid #2E2E38', borderRadius: 12, padding: 32, textAlign: 'center' }}>
-            <p style={{ color: '#444441', fontSize: 14, margin: 0 }}>Módulo em construção</p>
-          </div>
+          {active === 'obras' ? (
+            <Obras session={session} />
+          ) : (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 500, color: '#fff', margin: 0 }}>
+                  {NAV.find(n => n.key === active)?.label}
+                </h1>
+                <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 0' }}>
+                  {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <div style={{ background: '#1E1E24', border: '0.5px solid #2E2E38', borderRadius: 12, padding: 32, textAlign: 'center' }}>
+                <p style={{ color: '#444441', fontSize: 14, margin: 0 }}>Módulo em construção</p>
+              </div>
+            </>
+          )}
         </div>
 
       </div>
