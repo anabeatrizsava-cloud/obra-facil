@@ -89,7 +89,7 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
 /* ── MOBILE ── */
-#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:64px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:column;}
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;}
 #more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
 @media(max-width:768px){
   .topbar{padding:0 14px;}
@@ -1914,19 +1914,29 @@ function applyMobileLayout() {
   const isMobile = window.innerWidth <= 768;
   const h = window.innerHeight;
   const bn = document.getElementById('bottom-nav');
-  
+  const app = document.getElementById('app');
+  const ml = document.getElementById('main-layout');
+  const bw = document.querySelector('.body-wrap');
+  const ct = document.getElementById('content');
+
   if (isMobile) {
-    // Force exact pixel height on everything
-    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:' + h + 'px;';
-    document.getElementById('app').style.cssText = 'width:100%;height:' + h + 'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;';
-    const ml = document.getElementById('main-layout');
+    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:'+h+'px;';
+    if (app) app.style.cssText = 'width:100%;height:'+h+'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;overflow:hidden;';
     if (ml && ml.style.display !== 'none') {
-      ml.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;height:' + (h) + 'px;';
+      const topbarH = 48;
+      const navH = 56;
+      const bodyH = h - topbarH - navH;
+      ml.style.cssText = 'display:flex;flex-direction:column;width:100%;height:'+(h-navH)+'px;overflow:hidden;';
+      if (bw) bw.style.cssText = 'display:flex;flex:1;height:'+bodyH+'px;overflow:hidden;';
+      if (ct) ct.style.cssText = 'flex:1;height:'+bodyH+'px;overflow-y:auto;padding:16px 14px 16px;-webkit-overflow-scrolling:touch;';
     }
-    if (bn) bn.style.display = 'flex';
+    if (bn) { bn.style.display = 'flex'; bn.style.flexDirection = 'row'; }
   } else {
     document.body.style.cssText = '';
-    document.getElementById('app').style.cssText = '';
+    if (app) app.style.cssText = '';
+    if (ml) ml.style.cssText = '';
+    if (bw) bw.style.cssText = '';
+    if (ct) ct.style.cssText = '';
     if (bn) bn.style.display = 'none';
   }
 }
