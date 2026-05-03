@@ -197,26 +197,71 @@ let obraAberta = null;
 window.doLogin = () => signInWithPopup(auth, provider).catch(e => alert('Erro: ' + e.message));
 window.doLogout = () => { if(confirm('Sair?')) signOut(auth); };
 
+let currentRole = null;
+let currentPerms = [];
+const ADMIN_UID_EMAIL = 'ana.beatriz.sava@gmail.com';
+const TODOS_MODULOS = ['dashboard','obras','financeiro','materiais','equipe','diario','documentos','operacional','acessos','suporte'];
+
+async function getUserRole(email) {
+  if (email === ADMIN_UID_EMAIL) return {role:'admin', modulos: TODOS_MODULOS};
+  // Check stands
+  const standSnap = await getDocs(query(collection(db,'usuarios'), where('email','==',email)));
+  if (!standSnap.empty) {
+    const data = standSnap.docs[0].data();
+    return {role: data.perfil||'started', modulos: data.modulos||[], docId: standSnap.docs[0].id};
+  }
+  return null;
+}
+
 onAuthStateChanged(auth, async user => {
   currentUser = user;
-  // Check for client token first
   const params = new URLSearchParams(window.location.search);
-  if (params.get('token')) {
-    await checkClientToken();
-    return;
-  }
+  if (params.get('token')) { await checkClientToken(); return; }
   if (user) {
+    const roleData = await getUserRole(user.email);
+    if (!roleData) {
+      // User not authorized
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('main-layout').style.display = 'none';
+      document.querySelector('.login-sub').textContent = 'Acesso não autorizado. Entre em contato com o administrador.';
+      document.querySelector('.btn-google').style.display = 'none';
+      await signOut(auth);
+      return;
+    }
+    currentRole = roleData.role;
+    currentPerms = roleData.modulos;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = 'flex';
     document.getElementById('user-email').textContent = user.email;
     document.getElementById('user-avatar').textContent = user.email.substring(0,2).toUpperCase();
+    applyRoleToSidebar();
     renderPage('dashboard');
     setTimeout(initBell, 2000);
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('main-layout').style.display = 'none';
+    document.querySelector('.login-sub').textContent = 'Gestão de obras e reformas';
+    document.querySelector('.btn-google').style.display = '';
+    currentRole = null;
+    currentPerms = [];
   }
 });
+
+function applyRoleToSidebar() {
+  if (currentRole === 'admin' || currentRole === 'stand') return; // all visible
+  // For started: hide modules not in perms
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    const page = item.dataset.page;
+    if (page === 'suporte') { item.style.display = 'none'; return; }
+    if (!currentPerms.includes(page)) item.style.display = 'none';
+  });
+}
+
+function canAccess(page) {
+  if (currentRole === 'admin' || currentRole === 'stand') return true;
+  if (page === 'suporte') return false;
+  return currentPerms.includes(page);
+}
 
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
@@ -240,6 +285,10 @@ const TIPOS = ['Residencial','Comercial','Industrial','Reforma','Outro'];
 
 async function renderPage(page) {
   const el = document.getElementById('content');
+  if (!canAccess(page)) {
+    el.innerHTML = '<div class="wip">Você não tem permissão para acessar este módulo</div>';
+    return;
+  }
   el.innerHTML = '<div class="loading">Carregando...</div>';
   if (page === 'dashboard') await pgDash();
   else if (page === 'obras') obraAberta ? await pgDetalhe() : await pgObras();
@@ -1333,73 +1382,130 @@ async function initBell() {
   } catch(e) {}
 }
 
-// ══ ACESSOS ADMIN ══
+
+// ══ ACESSOS — 3 PERFIS ══
+const MODULOS_LABELS = {
+  dashboard:'Dashboard', obras:'Obras', financeiro:'Financeiro',
+  materiais:'Materiais', equipe:'Equipe', diario:'Diário de obra',
+  documentos:'Documentos', operacional:'Operacional', acessos:'Acessos'
+};
+
 async function pgAcessos() {
   setPage('acessos');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
-  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  if (currentRole !== 'admin') {
+    document.getElementById('content').innerHTML = '<div class="wip">Apenas o administrador pode gerenciar acessos</div>';
+    return;
+  }
 
-  // Load admin shares
-  const adminSnap = await getDocs(query(collection(db,'admins'), where('owner_uid','==',uid())));
-  const admins = adminSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const [usuariosSnap, acessosSnap, obrasSnap] = await Promise.all([
+    getDocs(collection(db,'usuarios')),
+    Promise.resolve(null),
+    getDocs(query(obrasCol(), where('uid','==',uid())))
+  ]);
+
+  const usuarios = usuariosSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const stands = usuarios.filter(u => u.perfil === 'stand');
+  const starteds = usuarios.filter(u => u.perfil === 'started');
+  const obras = obrasSnap.docs.map(d => ({id:d.id,...d.data()}));
 
   // Load client tokens
-  const acessosSnap = await Promise.all(obras.map(o => getDocs(sub(o.id,'acessos'))));
+  const acessosPromises = obras.map(o => getDocs(sub(o.id,'acessos')));
+  const acessosResults = await Promise.all(acessosPromises);
   const todoAcessos = [];
-  acessosSnap.forEach((snap, i) => {
+  acessosResults.forEach((snap, i) => {
     snap.docs.forEach(d => todoAcessos.push({id:d.id, obraId:obras[i].id, obraNome:obras[i].nome, ...d.data()}));
   });
 
   const base = window.location.origin + window.location.pathname;
 
-  let html = '<div style="margin-bottom:20px;"><div class="page-title">Acessos</div><div class="page-sub">Gerencie quem acessa o ObraFácil</div></div>';
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Acessos</div><div class="page-sub">Gerencie perfis e permissões do sistema</div></div>';
 
-  // Admin section
-  html += '<div class="sub-header"><span class="sub-title">Administradores</span><button class="btn-primary btn-sm" onclick="window.showAdminForm()">+ Adicionar admin</button></div>';
-  html += '<div id="admin-form-wrap"></div>';
+  // ── PERFIL ADMIN ──
+  html += '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:9px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">' +
+    '<div style="width:36px;height:36px;border-radius:50%;background:#2A1A1C;border:0.5px solid #4A1A23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff;flex-shrink:0;">AN</div>' +
+    '<div style="flex:1;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:13px;font-weight:500;color:#fff;">ana.beatriz.sava@gmail.com</span>' +
+        '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#2A1014;color:#9A4A53;">Admin</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:#484F58;margin-top:2px;">Acesso total + recebe demandas de suporte</div>' +
+    '</div>' +
+  '</div>';
 
-  if (!admins.length) {
-    html += '<div class="card" style="margin-bottom:20px;"><div class="empty-state">Nenhum administrador adicional<br><small style="color:#30363D;margin-top:6px;display:block;">Adicione outro usuário Google para acessar o sistema com permissão total</small></div></div>';
+  // ── PERFIL STAND ──
+  html += '<div class="sub-header"><span class="sub-title">Stand — acesso total</span><button class="btn-primary btn-sm" onclick="window.showUsuarioForm(\'stand\')">+ Adicionar Stand</button></div>';
+  html += '<div id="stand-form-wrap"></div>';
+
+  if (!stands.length) {
+    html += '<div class="card" style="margin-bottom:20px;"><div class="empty-state">Nenhum usuário Stand<br><small style="color:#30363D;margin-top:6px;display:block;">Stand tem acesso total ao sistema exceto o painel de suporte do admin</small></div></div>';
   } else {
-    admins.forEach(a => {
+    html += '<div style="margin-bottom:20px;">';
+    stands.forEach(u => {
       html += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:8px;">' +
+        '<div style="width:32px;height:32px;border-radius:50%;background:#21262D;border:0.5px solid #30363D;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#8B949E;flex-shrink:0;">' + u.email.substring(0,2).toUpperCase() + '</div>' +
         '<div style="flex:1;">' +
-          '<div style="font-size:13px;font-weight:500;color:#fff;">' + a.email + '</div>' +
-          '<div style="font-size:11px;color:#484F58;margin-top:2px;">Acesso total · Admin</div>' +
+          '<div style="font-size:13px;font-weight:500;color:#fff;">' + u.email + '</div>' +
+          '<div style="font-size:11px;color:#484F58;margin-top:1px;">Stand · Acesso total ao sistema + Suporte</div>' +
         '</div>' +
-        '<span class="badge badge-andamento">Ativo</span>' +
-        '<button onclick="window.delAdmin(\'' + a.id + '\')" class="btn-secondary btn-sm">Remover</button>' +
+        '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#1C2333;color:#8B949E;">Stand</span>' +
+        '<button onclick="window.removerUsuario(\'' + u.id + '\')" class="btn-secondary btn-sm">Remover</button>' +
       '</div>';
     });
-    html += '<div style="margin-bottom:20px;"></div>';
+    html += '</div>';
   }
 
-  // Client tokens section
-  html += '<div class="sub-header"><span class="sub-title">Portal do cliente</span><button class="btn-primary btn-sm" onclick="window.showAcessoForm()">+ Novo convite</button></div>';
+  // ── PERFIL STARTED ──
+  html += '<div class="sub-header"><span class="sub-title">Started — acesso por módulo</span><button class="btn-primary btn-sm" onclick="window.showUsuarioForm(\'started\')">+ Adicionar Started</button></div>';
+  html += '<div id="started-form-wrap"></div>';
+
+  if (!starteds.length) {
+    html += '<div class="card" style="margin-bottom:20px;"><div class="empty-state">Nenhum usuário Started<br><small style="color:#30363D;margin-top:6px;display:block;">Started tem acesso apenas aos módulos que você liberar</small></div></div>';
+  } else {
+    html += '<div style="margin-bottom:20px;">';
+    starteds.forEach(u => {
+      const mods = (u.modulos||[]).map(m => MODULOS_LABELS[m]||m).join(', ') || 'Nenhum módulo';
+      html += '<div class="card" style="padding:12px 16px;margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
+          '<div style="width:32px;height:32px;border-radius:50%;background:#172018;border:0.5px solid #233126;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#6A7657;flex-shrink:0;">' + u.email.substring(0,2).toUpperCase() + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:500;color:#fff;">' + u.email + '</div>' +
+            '<div style="font-size:11px;color:#484F58;margin-top:1px;">Started · ' + (u.modulos||[]).length + ' módulo' + ((u.modulos||[]).length!==1?'s':'') + ' liberado' + ((u.modulos||[]).length!==1?'s':'') + '</div>' +
+          '</div>' +
+          '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#172018;color:#6A7657;">Started</span>' +
+          '<button onclick="window.editarModulos(\'' + u.id + '\',\'' + u.email + '\')" class="btn-secondary btn-sm">Editar módulos</button>' +
+          '<button onclick="window.removerUsuario(\'' + u.id + '\')" class="btn-secondary btn-sm">Remover</button>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+          (u.modulos||[]).map(m => '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#1C2333;color:#8B949E;">' + (MODULOS_LABELS[m]||m) + '</span>').join('') +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  // ── PORTAL DO CLIENTE ──
+  html += '<div class="sub-header" style="margin-top:8px;"><span class="sub-title">Portal do cliente — links de acesso</span><button class="btn-primary btn-sm" onclick="window.showAcessoForm()">+ Novo convite</button></div>';
   html += '<div id="acesso-form-wrap"></div>';
 
   if (!todoAcessos.length) {
-    html += '<div class="card"><div class="empty-state">Nenhum convite gerado ainda<br><small style="color:#30363D;margin-top:6px;display:block;">Gere um link para o cliente acompanhar a obra</small></div></div>';
+    html += '<div class="card"><div class="empty-state">Nenhum convite gerado</div></div>';
   } else {
     todoAcessos.forEach(a => {
       const link = base + '?token=' + a.token;
       html += '<div class="card" style="padding:14px 18px;margin-bottom:8px;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
-          '<div>' +
-            '<div style="font-size:14px;font-weight:500;color:#fff;">' + (a.nome_cliente||'Cliente') + '</div>' +
-            '<div style="font-size:12px;color:#484F58;margin-top:2px;">Obra: ' + a.obraNome + (a.email_cliente?' · '+a.email_cliente:'') + '</div>' +
-          '</div>' +
+          '<div><div style="font-size:13px;font-weight:500;color:#fff;">' + (a.nome_cliente||'Cliente') + '</div>' +
+          '<div style="font-size:11px;color:#484F58;margin-top:2px;">Obra: ' + a.obraNome + (a.email_cliente?' · '+a.email_cliente:'') + '</div></div>' +
           '<div style="display:flex;gap:8px;align-items:center;">' +
-            '<span class="badge ' + (a.ativo!==false?'badge-andamento':'badge-pausada') + '">' + (a.ativo!==false?'Ativo':'Inativo') + '</span>' +
+            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (a.ativo!==false?'background:#1A2820;color:#3FB950':'background:#2A1C0A;color:#8C603E') + '">' + (a.ativo!==false?'Ativo':'Inativo') + '</span>' +
             '<button onclick="window.togAcesso(\'' + a.obraId + '\',\'' + a.id + '\',\'' + (a.ativo!==false) + '\')" class="btn-secondary btn-sm">' + (a.ativo!==false?'Desativar':'Ativar') + '</button>' +
             '<button onclick="window.delAcesso(\'' + a.obraId + '\',\'' + a.id + '\')" class="btn-secondary btn-sm">Excluir</button>' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 12px;">' +
           '<span style="font-size:11px;color:#484F58;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + link + '</span>' +
-          '<button onclick="window.copiarLink(\'' + link + '\')" style="background:#21262D;border:none;border-radius:6px;padding:5px 12px;font-size:11px;color:#fff;cursor:pointer;flex-shrink:0;">Copiar</button>' +
+          '<button onclick="window.copiarLink(\'' + link + '\')" style="background:#21262D;border:0.5px solid #30363D;border-radius:6px;padding:5px 12px;font-size:11px;color:#fff;cursor:pointer;flex-shrink:0;">Copiar</button>' +
         '</div>' +
-        (a.ultimo_acesso ? '<div style="font-size:11px;color:#484F58;margin-top:6px;">Último acesso: ' + new Date(a.ultimo_acesso).toLocaleDateString('pt-BR') + '</div>' : '') +
       '</div>';
     });
   }
@@ -1407,198 +1513,92 @@ async function pgAcessos() {
   document.getElementById('content').innerHTML = html;
 }
 
-window.showAdminForm = () => {
-  document.getElementById('admin-form-wrap').innerHTML =
+window.showUsuarioForm = (perfil) => {
+  const wrapId = perfil === 'stand' ? 'stand-form-wrap' : 'started-form-wrap';
+  const MODS = Object.keys(MODULOS_LABELS);
+  const modulosCheck = perfil === 'started' ? '<div class="form-group form-full"><label class="form-label">Módulos liberados</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">' +
+    MODS.map(m => '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8B949E;cursor:pointer;"><input type="checkbox" value="' + m + '" class="mod-check" style="accent-color:#30363D;"> ' + MODULOS_LABELS[m] + '</label>').join('') +
+  '</div></div>' : '';
+
+  document.getElementById(wrapId).innerHTML =
     '<div class="form-wrap" style="margin-bottom:16px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Adicionar administrador</span><button class="btn-close" onclick="document.getElementById(\'admin-form-wrap\').innerHTML=\'\'">×</button></div>' +
-      '<div class="form-group" style="margin-bottom:14px;"><label class="form-label">E-mail Google do usuário *</label><input class="form-input" id="adm-email" placeholder="usuario@gmail.com"></div>' +
-      '<div style="background:#1C2333;border-radius:8px;padding:10px 14px;font-size:12px;color:#fff;margin-bottom:14px;">Este usuário terá acesso total ao sistema. Ele precisará fazer login com a conta Google informada.</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+        '<span style="font-size:15px;font-weight:500;color:#fff;">Adicionar usuário ' + (perfil==='stand'?'Stand':'Started') + '</span>' +
+        '<button class="btn-close" onclick="document.getElementById(\'' + wrapId + '\').innerHTML=\'\'">×</button>' +
+      '</div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group form-full"><label class="form-label">E-mail Google *</label><input class="form-input" id="usr-email-' + perfil + '" placeholder="usuario@gmail.com"></div>' +
+        modulosCheck +
+      '</div>' +
+      '<div style="background:#1C2333;border-radius:8px;padding:10px 14px;margin:14px 0;font-size:12px;color:#8B949E;">' +
+        (perfil==='stand' ? 'Este usuário terá acesso total ao sistema e poderá abrir demandas de suporte.' : 'Este usuário só verá os módulos que você selecionar acima.') +
+      '</div>' +
       '<div class="form-actions">' +
-        '<button class="btn-secondary" onclick="document.getElementById(\'admin-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
-        '<button class="btn-primary" onclick="window.adicionarAdmin()">Adicionar</button>' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'' + wrapId + '\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarUsuario(\'' + perfil + '\')">Adicionar</button>' +
       '</div>' +
     '</div>';
 };
 
-window.adicionarAdmin = async () => {
-  const email = document.getElementById('adm-email').value.trim().toLowerCase();
+window.salvarUsuario = async (perfil) => {
+  const email = document.getElementById('usr-email-' + perfil).value.trim().toLowerCase();
   if (!email || !email.includes('@')) return alert('E-mail inválido');
-  if (email === currentUser.email.toLowerCase()) return alert('Você já é o administrador principal');
-  await addDoc(collection(db,'admins'), {
-    email,
+  if (email === ADMIN_UID_EMAIL) return alert('Este e-mail já é o administrador');
+
+  const modulos = perfil === 'started'
+    ? Array.from(document.querySelectorAll('.mod-check:checked')).map(c => c.value)
+    : Object.keys(MODULOS_LABELS);
+
+  if (perfil === 'started' && !modulos.length) return alert('Selecione ao menos um módulo');
+
+  // Check if already exists
+  const existing = await getDocs(query(collection(db,'usuarios'), where('email','==',email)));
+  if (!existing.empty) return alert('Este usuário já está cadastrado');
+
+  await addDoc(collection(db,'usuarios'), {
+    email, perfil, modulos,
     owner_uid: uid(),
     created_at: serverTimestamp()
   });
+
   await pgAcessos();
 };
 
-window.delAdmin = async (id) => {
-  if (!confirm('Remover este administrador?')) return;
-  await deleteDoc(doc(db,'admins',id));
-  await pgAcessos();
-};
+window.editarModulos = async (id, email) => {
+  const snap = await getDoc(doc(db,'usuarios',id));
+  const atual = snap.data().modulos || [];
+  const MODS = Object.keys(MODULOS_LABELS);
 
-window.showAcessoForm = async () => {
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
-  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  document.getElementById('acesso-form-wrap').innerHTML =
+  const wrap = document.getElementById('started-form-wrap');
+  wrap.innerHTML =
     '<div class="form-wrap" style="margin-bottom:16px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Novo convite</span><button class="btn-close" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">×</button></div>' +
-      '<div class="form-grid">' +
-        '<div class="form-group"><label class="form-label">Obra *</label><select class="form-input" id="ac-obra"><option value="">Selecionar</option>' + obras.map(o => '<option value="' + o.id + '">' + o.nome + '</option>').join('') + '</select></div>' +
-        '<div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="ac-nome" placeholder="Ex: João Silva"></div>' +
-        '<div class="form-group form-full"><label class="form-label">E-mail (opcional)</label><input class="form-input" id="ac-email" placeholder="cliente@email.com"></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+        '<span style="font-size:15px;font-weight:500;color:#fff;">Editar módulos — ' + email + '</span>' +
+        '<button class="btn-close" onclick="document.getElementById(\'started-form-wrap\').innerHTML=\'\'">×</button>' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">' +
+        MODS.map(m => '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8B949E;cursor:pointer;background:#161B22;border:0.5px solid #21262D;border-radius:7px;padding:6px 12px;">' +
+          '<input type="checkbox" value="' + m + '" class="mod-check-edit" ' + (atual.includes(m)?'checked':'') + ' style="accent-color:#30363D;"> ' + MODULOS_LABELS[m] + '</label>').join('') +
       '</div>' +
       '<div class="form-actions">' +
-        '<button class="btn-secondary" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
-        '<button class="btn-primary" onclick="window.gerarLink()">Gerar link</button>' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'started-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarModulos(\'' + id + '\')">Salvar</button>' +
       '</div>' +
     '</div>';
 };
 
-window.gerarLink = async () => {
-  const obraId = document.getElementById('ac-obra').value;
-  if (!obraId) return alert('Selecione uma obra');
-  const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-  await addDoc(sub(obraId,'acessos'), {
-    nome_cliente: document.getElementById('ac-nome').value,
-    email_cliente: document.getElementById('ac-email').value,
-    token, ativo: true,
-    created_at: serverTimestamp()
-  });
+window.salvarModulos = async (id) => {
+  const modulos = Array.from(document.querySelectorAll('.mod-check-edit:checked')).map(c => c.value);
+  if (!modulos.length) return alert('Selecione ao menos um módulo');
+  await updateDoc(doc(db,'usuarios',id), {modulos});
   await pgAcessos();
 };
 
-window.togAcesso = async (obraId, id, ativo) => {
-  await updateDoc(doc(db,'obras',obraId,'acessos',id), {ativo: ativo==='true' ? false : true});
+window.removerUsuario = async (id) => {
+  if (!confirm('Remover este usuário?')) return;
+  await deleteDoc(doc(db,'usuarios',id));
   await pgAcessos();
 };
-
-window.delAcesso = async (obraId, id) => {
-  if (!confirm('Excluir este acesso?')) return;
-  await deleteDoc(doc(db,'obras',obraId,'acessos',id));
-  await pgAcessos();
-};
-
-window.copiarLink = (link) => {
-  navigator.clipboard.writeText(link).then(() => alert('Link copiado!')).catch(() => prompt('Copie o link:', link));
-};
-
-
-// ══ PORTAL DO CLIENTE (acesso via token) ══
-async function checkClientToken() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
-  if (!token) return false;
-
-  // Find obra with this token - search across all obras
-  let obraEncontrada = null;
-  let acessoDoc = null;
-
-  try {
-    const obrasSnap = await getDocs(collection(db, 'obras'));
-    for (const obraD of obrasSnap.docs) {
-      try {
-        const acessosSnap = await getDocs(query(sub(obraD.id,'acessos'), where('token','==',token)));
-        const ativos = acessosSnap.docs.filter(d => d.data().ativo !== false);
-        if (ativos.length) {
-          obraEncontrada = {id:obraD.id,...obraD.data()};
-          acessoDoc = {id:ativos[0].id,...ativos[0].data()};
-          try { await updateDoc(doc(db,'obras',obraD.id,'acessos',ativos[0].id), {ultimo_acesso: new Date().toISOString()}); } catch(e){}
-          break;
-        }
-      } catch(e) {}
-    }
-  } catch(e) {
-    console.error('Token search error:', e);
-  }
-
-  if (!obraEncontrada) {
-    document.getElementById('app').innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#0D1117;font-family:sans-serif;">' +
-        '<div style="text-align:center;">' +
-          '<div style="width:8px;height:8px;border-radius:50%;background:#30363D;margin:0 auto 16px;"></div>' +
-          '<div style="font-size:16px;color:#fff;margin-bottom:8px;">Link inválido ou expirado</div>' +
-          '<div style="font-size:13px;color:#484F58;">Entre em contato com o responsável pela obra</div>' +
-        '</div>' +
-      '</div>';
-    return true;
-  }
-
-  await renderPortalCliente(obraEncontrada, acessoDoc);
-  return true;
-}
-
-async function renderPortalCliente(obra, acesso) {
-  const SL = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
-  const [etSnap, tSnap, dirSnap] = await Promise.all([
-    getDocs(query(sub(obra.id,'etapas'), orderBy('ordem'))),
-    getDocs(sub(obra.id,'tarefas')),
-    getDocs(query(sub(obra.id,'diario'), orderBy('data','desc')))
-  ]);
-  const etapas = etSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const tarefas = tSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const diario = dirSnap.docs.map(d=>({id:d.id,...d.data()})).slice(0,5);
-
-  const totalTarefas = tarefas.length;
-  const concluidas = tarefas.filter(t=>t.status==='concluida').length;
-  const progresso = totalTarefas ? Math.round((concluidas/totalTarefas)*100) : 0;
-
-  let html = '<div style="min-height:100vh;background:#0D1117;font-family:sans-serif;padding:0;">' +
-    '<div style="background:#161B22;border-bottom:0.5px solid #21262D;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;">' +
-      '<div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:#30363D;"></div><span style="font-size:15px;font-weight:500;color:#fff;">ObraFácil</span></div>' +
-      '<span style="font-size:12px;color:#484F58;">Área do cliente</span>' +
-    '</div>' +
-    '<div style="padding:24px 28px;">' +
-      '<div style="margin-bottom:20px;">' +
-        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
-          '<span style="font-size:20px;font-weight:500;color:#fff;">' + obra.nome + '</span>' +
-          '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#1C2333;color:#fff;">' + (SL[obra.status]||obra.status) + '</span>' +
-        '</div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">' +
-          (obra.nome_cliente?'<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#484F58;margin-bottom:4px;">Cliente</div><div style="font-size:13px;font-weight:500;color:#fff;">' + obra.nome_cliente + '</div></div>':'') +
-          (obra.data_prevista_fim?'<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#484F58;margin-bottom:4px;">Previsão de término</div><div style="font-size:13px;font-weight:500;color:#fff;">' + fmtD(obra.data_prevista_fim) + '</div></div>':'') +
-          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:#484F58;margin-bottom:4px;">Progresso geral</div><div style="font-size:22px;font-weight:500;color:#fff;">' + progresso + '%</div><div style="height:4px;background:#2E2E38;border-radius:2px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:' + progresso + '%;background:#1D9E75;border-radius:2px;"></div></div></div>' +
-        '</div>' +
-      '</div>';
-
-  // Etapas
-  if (etapas.length) {
-    html += '<div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:12px;">Etapas</div>';
-    etapas.forEach(et => {
-      const ets = tarefas.filter(t=>t.etapa_id===et.id);
-      const done = ets.filter(t=>t.status==='concluida').length;
-      const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
-      html += '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<span style="font-size:13px;font-weight:500;color:#fff;">' + et.nome + '</span>' +
-          '<span style="font-size:12px;color:#484F58;">' + pct + '%</span>' +
-        '</div>' +
-        (ets.length?'<div style="margin-top:8px;height:4px;background:#2E2E38;border-radius:2px;overflow:hidden;"><div style="height:100%;width:' + pct + '%;background:#1D9E75;border-radius:2px;"></div></div>':'') +
-        (et.data_prevista_fim?'<div style="font-size:11px;color:#484F58;margin-top:4px;">Previsão: ' + fmtD(et.data_prevista_fim) + '</div>':'') +
-      '</div>';
-    });
-  }
-
-  // Diário recente
-  if (diario.length) {
-    html += '<div style="font-size:14px;font-weight:500;color:#fff;margin:20px 0 12px;">Registros recentes</div>';
-    diario.forEach(r => {
-      html += '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
-          '<span style="font-size:13px;font-weight:500;color:#fff;">' + fmtD(r.data) + '</span>' +
-          (r.clima?'<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#1C2333;color:#fff;">' + r.clima + '</span>':'') +
-        '</div>' +
-        (r.descricao?'<div style="font-size:13px;color:#fff;">' + r.descricao + '</div>':'') +
-        (r.fotos&&r.fotos.length?'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">' + r.fotos.map(f=>'<img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(\''+f+'\',\'_blank\')">').join('') + '</div>':'') +
-      '</div>';
-    });
-  }
-
-  html += '</div></div>';
-  document.getElementById('app').innerHTML = html;
-}
-
 
 // ══ SUPORTE ══
 const ADMIN_EMAIL = 'ana.beatriz.sava@gmail.com';
