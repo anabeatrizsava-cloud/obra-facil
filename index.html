@@ -90,7 +90,7 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 
 /* ── MOBILE ── */
 #bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:row!important;}
-#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
+#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;max-height:70vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);}
 @media(max-width:768px){
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
@@ -586,9 +586,8 @@ async function pgDetalhe() {
             ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
             ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
           </div>
-          ${t.fotos&&t.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;">${t.fotos.map(f=>`<img src="${f}" style="width:56px;height:56px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open('${f}','_blank')">`).join('')}</div>`:''}
         </div>
-        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;align-self:flex-start;">×</button>
+        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
       </div>`;
     });
     html += '</div>';
@@ -647,31 +646,12 @@ window.showTarefaForm = (etapaId) => {
       <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-r-${etapaId}" placeholder="Nome"></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-d-${etapaId}"></div>
       <div class="form-group"><label class="form-label">Prioridade</label><select class="form-input" id="tf-p-${etapaId}"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
-      <div class="form-group form-full">
-        <label class="form-label">Fotos</label>
-        <input type="file" class="form-input" id="tf-f-${etapaId}" accept="image/*" multiple style="padding:6px;">
-        <div id="tf-prev-${etapaId}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
-      </div>
     </div>
     <div class="form-actions">
       <button class="btn-secondary btn-sm" onclick="document.getElementById('tf-form-${etapaId}').innerHTML=''">Cancelar</button>
-      <button class="btn-primary btn-sm" id="tf-btn-${etapaId}" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+      <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
     </div>
   </div>`;
-  setTimeout(() => {
-    const inp = document.getElementById('tf-f-' + etapaId);
-    if (inp) inp.onchange = () => {
-      const prev = document.getElementById('tf-prev-' + etapaId);
-      if (!prev) return;
-      prev.innerHTML = '';
-      Array.from(inp.files).forEach(f => {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(f);
-        img.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;';
-        prev.appendChild(img);
-      });
-    };
-  }, 50);
 };
 
 window.salvarTarefa = async (etapaId) => {
@@ -682,7 +662,7 @@ window.salvarTarefa = async (etapaId) => {
   const files = document.getElementById(`tf-f-${etapaId}`)?.files || [];
   const fotos = [];
   for (const f of Array.from(files)) {
-    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { alert('Erro ao enviar foto: ' + e.message); }
+    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
   }
   await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, status:'pendente', fotos, created_at:serverTimestamp()});
   await pgDetalhe();
