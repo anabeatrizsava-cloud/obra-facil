@@ -178,6 +178,9 @@ async function renderPage(page) {
   else if (page === 'financeiro') await pgFin();
   else if (page === 'materiais') await pgMateriais();
   else if (page === 'equipe') await pgEquipe();
+  else if (page === 'diario') await pgDiario();
+  else if (page === 'documentos') await pgDocumentos();
+  else if (page === 'operacional') await pgOperacional();
   else el.innerHTML = '<div class="wip">Módulo em construção</div>';
 }
 
@@ -780,6 +783,329 @@ window.delColab = async (id) => {
   await deleteDoc(doc(db,'colaboradores',id));
   await pgEquipe();
 };
+
+
+// ══ DIÁRIO DE OBRA ══
+async function pgDiario() {
+  setPage('diario');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div><div class="page-sub">Registro diário por obra</div></div>';
+  if (!obras.length) {
+    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+  } else {
+    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="dir-sel" onchange="window.loadDiario(this.value)"><option value="">— Selecionar obra —</option>';
+    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
+    html += '</select></div><div id="dir-body"></div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+window.loadDiario = async (oid) => {
+  if (!oid) { document.getElementById('dir-body').innerHTML = ''; return; }
+  document.getElementById('dir-body').innerHTML = '<div class="loading">Carregando...</div>';
+  const snap = await getDocs(query(sub(oid,'diario'), orderBy('data','desc')));
+  const registros = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const CLIMA = ['Ensolarado','Nublado','Chuvoso','Parcialmente nublado'];
+  let list = '';
+  if (!registros.length) {
+    list = '<div class="card"><div class="empty-state">Nenhum registro ainda</div></div>';
+  } else {
+    registros.forEach(r => {
+      list += '<div class="card" style="padding:14px 18px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:14px;font-weight:500;color:#fff;">' + fmtD(r.data) + '</span>' +
+            (r.clima ? '<span class="badge badge-planejamento">' + r.clima + '</span>' : '') +
+            (r.efetivo ? '<span style="font-size:12px;color:#5F5E5A;">' + r.efetivo + ' pessoas</span>' : '') +
+          '</div>' +
+          '<button onclick="window.delDiario(\'' + oid + '\',\'' + r.id + '\')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>' +
+        '</div>' +
+        (r.descricao ? '<div style="font-size:13px;color:#D3D1C7;margin-bottom:6px;">' + r.descricao + '</div>' : '') +
+        (r.ocorrencias ? '<div style="font-size:12px;color:#FAC775;padding:6px 10px;background:#3D3000;border-radius:6px;">⚠ ' + r.ocorrencias + '</div>' : '') +
+      '</div>';
+    });
+  }
+  document.getElementById('dir-body').innerHTML =
+    '<div class="sub-header"><span class="sub-title">Registros</span><button class="btn-primary btn-sm" onclick="window.showDiarioForm(\'' + oid + '\')">+ Novo registro</button></div>' +
+    '<div id="dir-form"></div>' +
+    '<div id="dir-list">' + list + '</div>';
+};
+
+window.showDiarioForm = (oid) => {
+  const CLIMA = ['Ensolarado','Nublado','Chuvoso','Parcialmente nublado'];
+  document.getElementById('dir-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo registro</span><button class="btn-close" onclick="document.getElementById(\'dir-form\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Data *</label><input type="date" class="form-input" id="dir-data" value="' + new Date().toISOString().split('T')[0] + '"></div>' +
+        '<div class="form-group"><label class="form-label">Clima</label><select class="form-input" id="dir-clima"><option value="">—</option>' + CLIMA.map(c => '<option value="' + c + '">' + c + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Efetivo (pessoas)</label><input type="number" class="form-input" id="dir-ef" placeholder="0"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Descrição das atividades</label><textarea class="form-input" style="height:72px;resize:none;" id="dir-desc" placeholder="O que foi feito hoje..."></textarea></div>' +
+        '<div class="form-group form-full"><label class="form-label">Ocorrências / problemas</label><textarea class="form-input" style="height:56px;resize:none;" id="dir-oc" placeholder="Atrasos, problemas, paralisações..."></textarea></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'dir-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarDiario(\'' + oid + '\')">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarDiario = async (oid) => {
+  const data = document.getElementById('dir-data').value;
+  if (!data) return alert('Data obrigatória');
+  await addDoc(sub(oid,'diario'), {
+    data,
+    clima: document.getElementById('dir-clima').value,
+    efetivo: parseInt(document.getElementById('dir-ef').value)||null,
+    descricao: document.getElementById('dir-desc').value,
+    ocorrencias: document.getElementById('dir-oc').value,
+    uid: uid(),
+    created_at: serverTimestamp()
+  });
+  window.loadDiario(oid);
+};
+
+window.delDiario = async (oid, id) => {
+  if (!confirm('Excluir?')) return;
+  await deleteDoc(doc(db,'obras',oid,'diario',id));
+  window.loadDiario(oid);
+};
+
+// ══ DOCUMENTOS ══
+async function pgDocumentos() {
+  setPage('documentos');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div><div class="page-sub">Gestão de documentos e registro fotográfico</div></div>';
+  if (!obras.length) {
+    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+  } else {
+    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="doc-sel" onchange="window.loadDocs(this.value)"><option value="">— Selecionar obra —</option>';
+    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
+    html += '</select></div><div id="doc-body"></div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+window.loadDocs = async (oid) => {
+  if (!oid) { document.getElementById('doc-body').innerHTML = ''; return; }
+  document.getElementById('doc-body').innerHTML = '<div class="loading">Carregando...</div>';
+  const snap = await getDocs(sub(oid,'documentos'));
+  const docs = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const TIPOS = {planta:'Planta',contrato:'Contrato',laudo:'Laudo',foto:'Foto',outro:'Outro'};
+  const BADGE_DOC = {planta:'badge-planejamento',contrato:'badge-andamento',laudo:'badge-pausada',foto:'badge-concluida',outro:'badge-planejamento'};
+  let list = '';
+  if (!docs.length) {
+    list = '<div class="card"><div class="empty-state">Nenhum documento cadastrado</div></div>';
+  } else {
+    docs.forEach(d => {
+      list += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">' +
+        '<div style="flex:1;">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:13px;font-weight:500;color:#fff;">' + d.nome + '</span>' +
+            '<span class="badge ' + (BADGE_DOC[d.tipo]||'badge-planejamento') + '">' + (TIPOS[d.tipo]||d.tipo||'—') + '</span>' +
+          '</div>' +
+          (d.observacao ? '<div style="font-size:11px;color:#5F5E5A;margin-top:2px;">' + d.observacao + '</div>' : '') +
+        '</div>' +
+        (d.url ? '<a href="' + d.url + '" target="_blank" style="background:#26215C;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#AFA9EC;cursor:pointer;text-decoration:none;">Abrir</a>' : '') +
+        '<button onclick="window.delDoc(\'' + oid + '\',\'' + d.id + '\')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>' +
+      '</div>';
+    });
+  }
+  document.getElementById('doc-body').innerHTML =
+    '<div class="sub-header"><span class="sub-title">Documentos</span><button class="btn-primary btn-sm" onclick="window.showDocForm(\'' + oid + '\')">+ Documento</button></div>' +
+    '<div id="doc-form"></div>' +
+    '<div id="doc-list">' + list + '</div>';
+};
+
+window.showDocForm = (oid) => {
+  const TIPOS = ['planta','contrato','laudo','foto','outro'];
+  const LABELS = {planta:'Planta',contrato:'Contrato',laudo:'Laudo',foto:'Foto',outro:'Outro'};
+  document.getElementById('doc-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo documento</span><button class="btn-close" onclick="document.getElementById(\'doc-form\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="doc-nome" placeholder="Ex: Planta baixa v2"></div>' +
+        '<div class="form-group"><label class="form-label">Tipo</label><select class="form-input" id="doc-tipo">' + TIPOS.map(t => '<option value="' + t + '">' + LABELS[t] + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Link / URL (opcional)</label><input class="form-input" id="doc-url" placeholder="https://..."></div>' +
+        '<div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="doc-obs" placeholder="Notas sobre o documento"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'doc-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarDoc(\'' + oid + '\')">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarDoc = async (oid) => {
+  const nome = document.getElementById('doc-nome').value.trim();
+  if (!nome) return alert('Nome obrigatório');
+  await addDoc(sub(oid,'documentos'), {
+    nome,
+    tipo: document.getElementById('doc-tipo').value,
+    url: document.getElementById('doc-url').value,
+    observacao: document.getElementById('doc-obs').value,
+    uid: uid(),
+    created_at: serverTimestamp()
+  });
+  window.loadDocs(oid);
+};
+
+window.delDoc = async (oid, id) => {
+  if (!confirm('Excluir?')) return;
+  await deleteDoc(doc(db,'obras',oid,'documentos',id));
+  window.loadDocs(oid);
+};
+
+// ══ OPERACIONAL ══
+async function pgOperacional() {
+  setPage('operacional');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div><div class="page-sub">Inspeções de qualidade e não conformidades</div></div>';
+  if (!obras.length) {
+    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+  } else {
+    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="op-sel" onchange="window.loadOp(this.value)"><option value="">— Selecionar obra —</option>';
+    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
+    html += '</select></div><div id="op-body"></div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+window.loadOp = async (oid) => {
+  if (!oid) { document.getElementById('op-body').innerHTML = ''; return; }
+  document.getElementById('op-body').innerHTML = '<div class="loading">Carregando...</div>';
+  const [insSnap, ncSnap] = await Promise.all([
+    getDocs(sub(oid,'inspecoes')),
+    getDocs(sub(oid,'nao_conformidades'))
+  ]);
+  const inspecoes = insSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const ncs = ncSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const abertas = ncs.filter(n => n.status==='aberta').length;
+
+  let insList = '';
+  if (!inspecoes.length) {
+    insList = '<div class="card"><div class="empty-state">Nenhuma inspeção registrada</div></div>';
+  } else {
+    inspecoes.forEach(i => {
+      insList += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px;font-weight:500;color:#fff;">' + (i.tipo||'Inspeção') + '</div>' +
+          '<div style="font-size:11px;color:#5F5E5A;margin-top:2px;">' + (i.data?fmtD(i.data):'') + (i.responsavel?' · '+i.responsavel:'') + '</div>' +
+          (i.observacao?'<div style="font-size:12px;color:#D3D1C7;margin-top:4px;">' + i.observacao + '</div>':'') +
+        '</div>' +
+        '<span class="badge ' + (i.resultado==='aprovado'?'badge-andamento':'badge-pausada') + '">' + (i.resultado==='aprovado'?'Aprovado':'Reprovado') + '</span>' +
+        '<button onclick="window.delInsp(\'' + oid + '\',\'' + i.id + '\')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>' +
+      '</div>';
+    });
+  }
+
+  let ncList = '';
+  if (!ncs.length) {
+    ncList = '<div class="card"><div class="empty-state">Nenhuma não conformidade registrada</div></div>';
+  } else {
+    ncs.forEach(n => {
+      ncList += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px;font-weight:500;color:#fff;">' + n.descricao + '</div>' +
+          '<div style="font-size:11px;color:#5F5E5A;margin-top:2px;">' + (n.responsavel?'Resp: '+n.responsavel:'') + (n.prazo?' · Prazo: '+fmtD(n.prazo):'') + '</div>' +
+          (n.resolucao?'<div style="font-size:12px;color:#5DCAA5;margin-top:4px;">✓ ' + n.resolucao + '</div>':'') +
+        '</div>' +
+        '<span class="badge ' + (n.status==='resolvida'?'badge-andamento':n.status==='em_andamento'?'badge-pausada':'badge-planejamento') + '">' + (n.status==='resolvida'?'Resolvida':n.status==='em_andamento'?'Em andamento':'Aberta') + '</span>' +
+        (n.status!=='resolvida'?'<button onclick="window.resolverNC(\'' + oid + '\',\'' + n.id + '\')" style="background:#0F3D2E;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#5DCAA5;cursor:pointer;">Resolver</button>':'') +
+        '<button onclick="window.delNC(\'' + oid + '\',\'' + n.id + '\')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>' +
+      '</div>';
+    });
+  }
+
+  document.getElementById('op-body').innerHTML =
+    '<div class="stats-grid" style="margin-bottom:20px;">' +
+      '<div class="stat-card"><div class="stat-val">' + inspecoes.length + '</div><div class="stat-lbl">Inspeções</div><span class="stat-tag tag-ok">' + inspecoes.filter(i=>i.resultado==='aprovado').length + ' aprovadas</span></div>' +
+      '<div class="stat-card"><div class="stat-val">' + ncs.length + '</div><div class="stat-lbl">Não conformidades</div><span class="stat-tag ' + (abertas>0?'tag-warn':'tag-ok') + '">' + abertas + ' abertas</span></div>' +
+    '</div>' +
+    '<div class="sub-header"><span class="sub-title">Inspeções de qualidade</span><button class="btn-primary btn-sm" onclick="window.showInspForm(\'' + oid + '\')">+ Inspeção</button></div>' +
+    '<div id="insp-form"></div>' +
+    '<div id="insp-list">' + insList + '</div>' +
+    '<div class="sub-header" style="margin-top:24px;"><span class="sub-title">Não conformidades</span><button class="btn-primary btn-sm" onclick="window.showNCForm(\'' + oid + '\')">+ NC</button></div>' +
+    '<div id="nc-form"></div>' +
+    '<div id="nc-list">' + ncList + '</div>';
+};
+
+window.showInspForm = (oid) => {
+  document.getElementById('insp-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova inspeção</span><button class="btn-close" onclick="document.getElementById(\'insp-form\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Tipo *</label><input class="form-input" id="ins-tipo" placeholder="Ex: Inspeção elétrica"></div>' +
+        '<div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="ins-data" value="' + new Date().toISOString().split('T')[0] + '"></div>' +
+        '<div class="form-group"><label class="form-label">Resultado</label><select class="form-input" id="ins-res"><option value="aprovado">Aprovado</option><option value="reprovado">Reprovado</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="ins-resp" placeholder="Nome"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="ins-obs" placeholder="Detalhes da inspeção"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'insp-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarInsp(\'' + oid + '\')">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarInsp = async (oid) => {
+  const tipo = document.getElementById('ins-tipo').value.trim();
+  if (!tipo) return alert('Tipo obrigatório');
+  await addDoc(sub(oid,'inspecoes'), {
+    tipo,
+    data: document.getElementById('ins-data').value,
+    resultado: document.getElementById('ins-res').value,
+    responsavel: document.getElementById('ins-resp').value,
+    observacao: document.getElementById('ins-obs').value,
+    created_at: serverTimestamp()
+  });
+  window.loadOp(oid);
+};
+window.delInsp = async (oid, id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'inspecoes',id)); window.loadOp(oid); };
+
+window.showNCForm = (oid) => {
+  document.getElementById('nc-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova não conformidade</span><button class="btn-close" onclick="document.getElementById(\'nc-form\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="nc-desc" placeholder="Ex: Fiação fora do padrão"></div>' +
+        '<div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="nc-resp" placeholder="Nome"></div>' +
+        '<div class="form-group"><label class="form-label">Prazo</label><input type="date" class="form-input" id="nc-prazo"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'nc-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarNC(\'' + oid + '\')">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarNC = async (oid) => {
+  const desc = document.getElementById('nc-desc').value.trim();
+  if (!desc) return alert('Descrição obrigatória');
+  await addDoc(sub(oid,'nao_conformidades'), {
+    descricao: desc,
+    responsavel: document.getElementById('nc-resp').value,
+    prazo: document.getElementById('nc-prazo').value,
+    status: 'aberta',
+    created_at: serverTimestamp()
+  });
+  window.loadOp(oid);
+};
+
+window.resolverNC = async (oid, id) => {
+  const resolucao = prompt('Descreva a resolução:');
+  if (!resolucao) return;
+  await updateDoc(doc(db,'obras',oid,'nao_conformidades',id), {
+    status: 'resolvida',
+    resolucao,
+    data_resolucao: new Date().toISOString().split('T')[0]
+  });
+  window.loadOp(oid);
+};
+window.delNC = async (oid, id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'nao_conformidades',id)); window.loadOp(oid); };
 
 </script>
 </body>
