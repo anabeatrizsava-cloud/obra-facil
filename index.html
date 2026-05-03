@@ -176,6 +176,8 @@ async function renderPage(page) {
   if (page === 'dashboard') await pgDash();
   else if (page === 'obras') obraAberta ? await pgDetalhe() : await pgObras();
   else if (page === 'financeiro') await pgFin();
+  else if (page === 'materiais') await pgMateriais();
+  else if (page === 'equipe') await pgEquipe();
   else el.innerHTML = '<div class="wip">Módulo em construção</div>';
 }
 
@@ -599,6 +601,185 @@ window.salvarMed = async (oid) => {
   window.loadFin(oid);
 };
 window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'medicoes',id)); window.loadFin(oid); };
+
+
+// ══ MATERIAIS ══
+async function pgMateriais() {
+  setPage('materiais');
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div><div class="page-sub">Lista de materiais por obra (BOM)</div></div>';
+  if (!obras.length) {
+    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+  } else {
+    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="mat-sel" onchange="window.loadMat(this.value)"><option value="">— Selecionar obra —</option>';
+    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
+    html += '</select></div><div id="mat-body"></div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+window.loadMat = async (oid) => {
+  if (!oid) { document.getElementById('mat-body').innerHTML = ''; return; }
+  document.getElementById('mat-body').innerHTML = '<div class="loading">Carregando...</div>';
+  const snap = await getDocs(sub(oid,'materiais'));
+  const mats = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const STATUS_MAT = {pendente:'Pendente', comprado:'Comprado', entregue:'Entregue'};
+  const BADGE_MAT = {pendente:'badge-planejamento', comprado:'badge-pausada', entregue:'badge-andamento'};
+  let list = '';
+  if (!mats.length) {
+    list = '<div class="card"><div class="empty-state">Nenhum material cadastrado</div></div>';
+  } else {
+    mats.forEach(m => {
+      list += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px;font-weight:500;color:#fff;">' + m.nome + '</div>' +
+          '<div style="font-size:11px;color:#5F5E5A;margin-top:2px;">' +
+            (m.fornecedor ? 'Fornecedor: ' + m.fornecedor + ' · ' : '') +
+            'Qtd prevista: ' + (m.quantidade_prevista||'—') + ' ' + (m.unidade||'') +
+            ' · Real: ' + (m.quantidade_real||0) + ' ' + (m.unidade||'') +
+          '</div>' +
+        '</div>' +
+        (m.valor_unitario ? '<div style="font-size:12px;color:#5F5E5A;">' + fmtR(m.valor_unitario) + '/' + (m.unidade||'un') + '</div>' : '') +
+        '<span class="badge ' + (BADGE_MAT[m.status]||'badge-planejamento') + '">' + (STATUS_MAT[m.status]||'Pendente') + '</span>' +
+        '<button onclick="window.togMat(\'' + oid + '\',\'' + m.id + '\',\'' + (m.status||'pendente') + '\')" style="background:#26215C;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#AFA9EC;cursor:pointer;">Avançar</button>' +
+        '<button onclick="window.delMat(\'' + oid + '\',\'' + m.id + '\')" style="background:transparent;border:none;color:#444441;font-size:16px;cursor:pointer;">×</button>' +
+      '</div>';
+    });
+  }
+  document.getElementById('mat-body').innerHTML =
+    '<div class="sub-header"><span class="sub-title">Lista de materiais</span><button class="btn-primary btn-sm" onclick="window.showMatForm(\'' + oid + '\')">+ Material</button></div>' +
+    '<div id="mat-form"></div>' +
+    '<div id="mat-list">' + list + '</div>';
+};
+
+window.showMatForm = (oid) => {
+  const UNIDADES = ['un','m²','m³','m','kg','L','saco','cx','rolo'];
+  let opts = UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
+  document.getElementById('mat-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo material</span><button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="mat-nome" placeholder="Ex: Tinta látex"></div>' +
+        '<div class="form-group"><label class="form-label">Unidade</label><select class="form-input" id="mat-un">' + opts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Qtd prevista</label><input type="number" class="form-input" id="mat-qp" placeholder="0"></div>' +
+        '<div class="form-group"><label class="form-label">Qtd real</label><input type="number" class="form-input" id="mat-qr" placeholder="0"></div>' +
+        '<div class="form-group"><label class="form-label">Valor unitário (R$)</label><input type="number" class="form-input" id="mat-vl" placeholder="0,00"></div>' +
+        '<div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="mat-forn" placeholder="Nome"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarMat(\'' + oid + '\')">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarMat = async (oid) => {
+  const nome = document.getElementById('mat-nome').value.trim();
+  if (!nome) return alert('Nome obrigatório');
+  await addDoc(sub(oid,'materiais'), {
+    nome,
+    unidade: document.getElementById('mat-un').value,
+    quantidade_prevista: parseFloat(document.getElementById('mat-qp').value)||0,
+    quantidade_real: parseFloat(document.getElementById('mat-qr').value)||0,
+    valor_unitario: parseFloat(document.getElementById('mat-vl').value)||null,
+    fornecedor: document.getElementById('mat-forn').value,
+    status: 'pendente',
+    created_at: serverTimestamp()
+  });
+  window.loadMat(oid);
+};
+
+window.togMat = async (oid, id, status) => {
+  const seq = ['pendente','comprado','entregue'];
+  const next = seq[(seq.indexOf(status)+1) % seq.length];
+  await updateDoc(doc(db,'obras',oid,'materiais',id), {status: next});
+  window.loadMat(oid);
+};
+
+window.delMat = async (oid, id) => {
+  if (!confirm('Excluir?')) return;
+  await deleteDoc(doc(db,'obras',oid,'materiais',id));
+  window.loadMat(oid);
+};
+
+// ══ EQUIPE ══
+async function pgEquipe() {
+  setPage('equipe');
+  const snap = await getDocs(query(collection(db,'colaboradores'), where('uid','==',uid())));
+  const colab = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let html = '<div style="display:flex;justify-content:space-between;margin-bottom:20px;">' +
+    '<div><div class="page-title">Equipe</div><div class="page-sub">' + colab.length + ' colaborador' + (colab.length!==1?'es':'') + ' cadastrado' + (colab.length!==1?'s':'') + '</div></div>' +
+    '<button class="btn-primary" onclick="window.showColabForm()">+ Colaborador</button>' +
+  '</div>' +
+  '<div id="colab-form-wrap"></div>' +
+  '<div id="colab-list">';
+  if (!colab.length) {
+    html += '<div class="card"><div class="empty-state">Nenhum colaborador cadastrado</div></div>';
+  } else {
+    colab.forEach(c => {
+      html += '<div class="card" style="display:flex;align-items:center;gap:16px;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:14px;font-weight:500;color:#fff;">' + c.nome + '</div>' +
+          '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;">' +
+            (c.funcao ? '<span style="font-size:12px;color:#5F5E5A;">' + c.funcao + '</span>' : '') +
+            (c.telefone ? '<span style="font-size:12px;color:#5F5E5A;">' + c.telefone + '</span>' : '') +
+            (c.custo_hora ? '<span style="font-size:12px;color:#5F5E5A;">' + fmtR(c.custo_hora) + '/h</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<span class="badge ' + (c.ativo!==false?'badge-andamento':'badge-pausada') + '">' + (c.ativo!==false?'Ativo':'Inativo') + '</span>' +
+        '<button class="btn-secondary btn-sm" onclick="window.togColab(\'' + c.id + '\',\'' + (c.ativo!==false) + '\')">' + (c.ativo!==false?'Desativar':'Ativar') + '</button>' +
+        '<button class="btn-secondary btn-sm" onclick="window.delColab(\'' + c.id + '\')">Excluir</button>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+window.showColabForm = () => {
+  document.getElementById('colab-form-wrap').innerHTML =
+    '<div class="form-wrap">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Novo colaborador</span><button class="btn-close" onclick="document.getElementById(\'colab-form-wrap\').innerHTML=\'\'">×</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="cl-nome" placeholder="Nome completo"></div>' +
+        '<div class="form-group"><label class="form-label">Função</label><input class="form-input" id="cl-func" placeholder="Ex: Pedreiro, Eletricista"></div>' +
+        '<div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="cl-tel" placeholder="(11) 99999-9999"></div>' +
+        '<div class="form-group"><label class="form-label">E-mail</label><input class="form-input" id="cl-email" placeholder="email@email.com"></div>' +
+        '<div class="form-group"><label class="form-label">Custo/hora (R$)</label><input type="number" class="form-input" id="cl-ch" placeholder="0,00"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'colab-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarColab()">Salvar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarColab = async () => {
+  const nome = document.getElementById('cl-nome').value.trim();
+  if (!nome) return alert('Nome obrigatório');
+  await addDoc(collection(db,'colaboradores'), {
+    nome, uid: uid(),
+    funcao: document.getElementById('cl-func').value,
+    telefone: document.getElementById('cl-tel').value,
+    email: document.getElementById('cl-email').value,
+    custo_hora: parseFloat(document.getElementById('cl-ch').value)||null,
+    ativo: true,
+    created_at: serverTimestamp()
+  });
+  await pgEquipe();
+};
+
+window.togColab = async (id, ativo) => {
+  await updateDoc(doc(db,'colaboradores',id), {ativo: ativo==='true' ? false : true});
+  await pgEquipe();
+};
+
+window.delColab = async (id) => {
+  if (!confirm('Excluir?')) return;
+  await deleteDoc(doc(db,'colaboradores',id));
+  await pgEquipe();
+};
 
 </script>
 </body>
