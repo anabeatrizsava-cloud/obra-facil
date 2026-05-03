@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import Dashboard from './pages/Dashboard'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -23,10 +24,6 @@ export default function App() {
     })
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-  }
-
   if (loading) return (
     <div style={{ background: '#16161A', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <p style={{ color: '#888780', fontFamily: 'sans-serif' }}>Carregando...</p>
@@ -46,15 +43,5 @@ export default function App() {
     </div>
   )
 
-  return (
-    <div style={{ background: '#16161A', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ color: '#9FE1CB', fontSize: 14, marginBottom: 8 }}>Autenticado como</p>
-        <p style={{ color: '#fff', fontSize: 16, fontWeight: 500, marginBottom: 24 }}>{session.user.email}</p>
-        <button onClick={handleLogout} style={{ background: 'transparent', color: '#888780', border: '0.5px solid #2E2E38', borderRadius: 8, padding: '10px 24px', fontSize: 13, cursor: 'pointer' }}>
-          Sair
-        </button>
-      </div>
-    </div>
-  )
+  return <Dashboard session={session} />
 }
