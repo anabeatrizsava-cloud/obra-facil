@@ -95,6 +95,7 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .bn-item svg{flex-shrink:0;}
 .bn-item.active{color:#fff;}
 .bn-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.bn-safe{height:env(safe-area-inset-bottom,0px);background:#161B22;}
 #more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
 .sheet-handle-wrap{display:flex;justify-content:center;padding:12px 0 8px;cursor:pointer;}
 .sheet-handle{width:36px;height:4px;border-radius:2px;background:#30363D;}
@@ -104,11 +105,12 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .sheet-icon{width:40px;height:40px;border-radius:10px;background:#21262D;display:flex;align-items:center;justify-content:center;}
 @media(max-width:768px){
   html,body{height:100%;width:100%;overflow:hidden;margin:0;padding:0;}
-  #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;}
-  #main-layout{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding-bottom:calc(56px + env(safe-area-inset-bottom,0px));}
-  .body-wrap{flex:1;min-height:0;overflow:hidden;display:flex;}
-  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 16px;}
+  #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:#0D1117;overflow:hidden;}
+  #login-screen{padding-top:env(safe-area-inset-top,0px);}
+  #main-layout{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding-top:env(safe-area-inset-top,0px);}
   #bottom-nav{display:flex!important;}
+  .body-wrap{flex:1;min-height:0;overflow:hidden;display:flex;}
+  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(72px + env(safe-area-inset-bottom,0px)) 14px;}
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
   .sidebar{display:none!important;}
@@ -227,7 +229,7 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
         <span>Mais</span>
       </div>
     </div>
-    <div style="height:env(safe-area-inset-bottom,0px);"></div>
+    <div class="bn-safe"></div>
   </div>
 
   <!-- BOTTOM SHEET OVERLAY -->
@@ -1922,14 +1924,8 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 });
 
 
-// ── MOBILE LAYOUT FIX ──
-function applyMobileLayout() {
-  // CSS handles everything via @media and position:fixed on #app
-  // No JS pixel math needed — avoids Safari innerHeight bugs
-}
-applyMobileLayout();
-window.addEventListener('resize', applyMobileLayout);
-window.addEventListener('orientationchange', () => setTimeout(applyMobileLayout, 300));
+// ── MOBILE LAYOUT: handled entirely by CSS (position:fixed + safe-area-inset) ──
+// No JS pixel math to avoid Safari innerHeight bugs
 
 </script>
 </body>
