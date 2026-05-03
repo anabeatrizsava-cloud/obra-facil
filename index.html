@@ -476,12 +476,61 @@ async function renderObraDetalhe() {
 window.voltarObras = () => { obraAberta = null; renderPage('obras'); };
 
 window.editarObra = () => {
-  window.showObraForm(obraAberta);
-  document.getElementById('obra-form-wrap').innerHTML = document.getElementById('obra-form-wrap').innerHTML;
-  window.showObraForm({...obraAberta});
   const wrap = document.getElementById('obra-edit-form');
-  const formWrap = document.getElementById('obra-form-wrap');
-  if (formWrap) wrap.innerHTML = formWrap.innerHTML;
+  if (!wrap) return;
+  const o = obraAberta;
+  wrap.innerHTML = `
+    <div class="form-wrap" style="margin-bottom:20px;">
+      <div class="form-title"><span>Editar obra</span><button class="btn-close" onclick="document.getElementById('obra-edit-form').innerHTML=''">×</button></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Nome da obra *</label><input class="form-input" id="of-nome" value="${o.nome||''}"></div>
+        <div class="form-group"><label class="form-label">Tipo</label>
+          <select class="form-input" id="of-tipo">
+            <option value="">Selecionar</option>
+            ${['Residencial','Comercial','Industrial','Reforma','Outro'].map(t=>`<option value="${t}" ${o.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-input" id="of-status">
+            ${Object.entries(statusLabel).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Data de início</label><input type="date" class="form-input" id="of-inicio" value="${o.data_inicio||''}"></div>
+        <div class="form-group"><label class="form-label">Previsão de término</label><input type="date" class="form-input" id="of-fim" value="${o.data_prevista_fim||''}"></div>
+        <div class="form-group"><label class="form-label">Nome do cliente</label><input class="form-input" id="of-cliente" value="${o.nome_cliente||''}"></div>
+        <div class="form-group"><label class="form-label">Contato do cliente</label><input class="form-input" id="of-contato" value="${o.contato_cliente||''}"></div>
+        <div class="form-group"><label class="form-label">Valor orçado (R$)</label><input type="number" class="form-input" id="of-valor" value="${o.valor_orcado||''}"></div>
+        <div class="form-group"><label class="form-label">Responsável técnico</label><input class="form-input" id="of-resp" value="${o.responsavel_tecnico||''}"></div>
+        <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="of-end" value="${o.endereco||''}"></div>
+        <div class="form-group form-full"><label class="form-label">Descrição</label><textarea class="form-input form-textarea" id="of-desc">${o.descricao||''}</textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="document.getElementById('obra-edit-form').innerHTML=''">Cancelar</button>
+        <button class="btn-primary" onclick="window.salvarEdicaoObra()">Salvar alterações</button>
+      </div>
+    </div>
+  `;
+};
+
+window.salvarEdicaoObra = async () => {
+  const nome = document.getElementById('of-nome').value.trim();
+  if (!nome) return alert('Nome da obra é obrigatório');
+  const dados = {
+    nome,
+    tipo: document.getElementById('of-tipo').value,
+    status: document.getElementById('of-status').value,
+    data_inicio: document.getElementById('of-inicio').value,
+    data_prevista_fim: document.getElementById('of-fim').value,
+    nome_cliente: document.getElementById('of-cliente').value,
+    contato_cliente: document.getElementById('of-contato').value,
+    valor_orcado: parseFloat(document.getElementById('of-valor').value)||null,
+    responsavel_tecnico: document.getElementById('of-resp').value,
+    endereco: document.getElementById('of-end').value,
+    descricao: document.getElementById('of-desc').value,
+  };
+  await updateDoc(obraDoc(obraAberta.id), dados);
+  obraAberta = {...obraAberta, ...dados};
+  await renderObraDetalhe();
 };
 
 window.showEtapaForm = () => {
