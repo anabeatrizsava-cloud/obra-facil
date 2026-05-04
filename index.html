@@ -90,7 +90,18 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 
 /* ── MOBILE ── */
 #bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:row!important;}
-#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
+#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;padding-bottom:env(safe-area-inset-bottom,0);}
+.bn-quick-row{display:flex;flex-direction:row;align-items:center;justify-content:space-around;width:100%;height:56px;padding:0 4px;}
+.bn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;height:100%;cursor:pointer;color:#484F58;font-size:10px;border-radius:10px;padding:4px 2px;transition:color 0.15s;}
+.bn-item svg{flex-shrink:0;}
+.bn-item span{font-size:10px;line-height:1;white-space:nowrap;}
+.bn-item:hover,.bn-item.active{color:#fff;}
+.sheet-handle-wrap{display:flex;justify-content:center;padding:12px 0 8px;}
+.sheet-handle{width:36px;height:4px;background:#30363D;border-radius:99px;}
+.sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px 12px 20px;}
+.sheet-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 8px;border-radius:10px;cursor:pointer;color:#8B949E;font-size:11px;background:#0D1117;}
+.sheet-item:hover{background:#21262D;color:#fff;}
+.sheet-icon{width:36px;height:36px;border-radius:8px;background:#21262D;display:flex;align-items:center;justify-content:center;}
 @media(max-width:768px){
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
@@ -646,12 +657,21 @@ window.showTarefaForm = (etapaId) => {
       <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-r-${etapaId}" placeholder="Nome"></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-d-${etapaId}"></div>
       <div class="form-group"><label class="form-label">Prioridade</label><select class="form-input" id="tf-p-${etapaId}"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
+      <div class="form-group form-full"><label class="form-label">Observação / descrição</label><textarea class="form-input" id="tf-o-${etapaId}" placeholder="Descreva o que precisa ser feito, materiais necessários, detalhes técnicos..." style="height:72px;resize:none;"></textarea></div>
+      <div class="form-group form-full"><label class="form-label">Fotos (opcional)</label><input type="file" class="form-input" id="tf-f-${etapaId}" accept="image/*" multiple style="padding:6px;"><div id="tf-prev-${etapaId}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div></div>
     </div>
     <div class="form-actions">
       <button class="btn-secondary btn-sm" onclick="document.getElementById('tf-form-${etapaId}').innerHTML=''">Cancelar</button>
-      <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+      <button class="btn-primary btn-sm" id="tf-btn-${etapaId}" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
     </div>
   </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById('tf-f-' + etapaId);
+    if (inp) inp.onchange = () => {
+      const prev = document.getElementById('tf-prev-' + etapaId);
+      if (prev) { prev.innerHTML = ''; Array.from(inp.files).forEach(f => { prev.innerHTML += '<img src="' + URL.createObjectURL(f) + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">'; }); }
+    };
+  }, 50);
 };
 
 window.salvarTarefa = async (etapaId) => {
