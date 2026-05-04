@@ -89,32 +89,14 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
 /* ── MOBILE ── */
-#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:column!important;}
-.bn-quick-row{display:flex;flex-direction:row;height:56px;align-items:stretch;}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#484F58;cursor:pointer;font-size:10px;min-width:0;}
-.bn-item svg{flex-shrink:0;}
-.bn-item.active{color:#fff;}
-.bn-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.bn-safe{height:env(safe-area-inset-bottom,0px);background:#161B22;}
-#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;max-height:70vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);}
-.sheet-handle-wrap{display:flex;justify-content:center;padding:12px 0 8px;cursor:pointer;}
-.sheet-handle{width:36px;height:4px;border-radius:2px;background:#30363D;}
-.sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:8px 12px 16px;}
-.sheet-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:10px;color:#8B949E;font-size:11px;cursor:pointer;}
-.sheet-item:active{background:#21262D;}
-.sheet-icon{width:40px;height:40px;border-radius:10px;background:#21262D;display:flex;align-items:center;justify-content:center;}
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:row!important;}
+#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
 @media(max-width:768px){
-  html{background:#0D1117;}
-  body{background:#0D1117;margin:0;padding:0;overflow:hidden;}
-  #app{position:fixed;top:0;left:0;right:0;bottom:0;height:100dvh;display:flex;flex-direction:column;background:#0D1117;overflow:hidden;}
-  #main-layout{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow:hidden;padding-top:env(safe-area-inset-top,44px);}
-  #bottom-nav{display:flex!important;}
-  .body-wrap{flex:1;min-height:0;overflow:hidden;display:flex;}
-  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(72px + env(safe-area-inset-bottom,34px)) 14px;}
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
   .sidebar{display:none!important;}
   .nav-tip{display:none!important;}
+  .content{padding:16px 14px 88px;}
   .form-grid{grid-template-columns:1fr!important;}
   .form-full{grid-column:1!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
@@ -199,7 +181,6 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
         </div>
         <div class="nav-item" data-page="suporte" style="width:36px;height:36px;padding:0;justify-content:center;border-radius:8px;position:relative;">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.8" fill="currentColor"/></svg>
-          <div id="suporte-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#E24B4A;border:1.5px solid #0D1117;"></div>
           <span class="nav-tip">Suporte</span>
         </div>
       </div>
@@ -230,7 +211,6 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
         <span>Mais</span>
       </div>
     </div>
-    <div class="bn-safe"></div>
   </div>
 
   <!-- BOTTOM SHEET OVERLAY -->
@@ -263,11 +243,8 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
         <div class="sheet-icon"><svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg></div>
         <span>Acessos</span>
       </div>
-      <div class="sheet-item" onclick="window.bnNav('suporte')" style="position:relative;">
-        <div style="position:relative;display:inline-flex;">
-          <div class="sheet-icon"><svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.8" fill="currentColor"/></svg></div>
-          <div id="suporte-dot-mobile" style="display:none;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#E24B4A;border:1.5px solid #161B22;"></div>
-        </div>
+      <div class="sheet-item" onclick="window.bnNav('suporte')">
+        <div class="sheet-icon"><svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.8" fill="currentColor"/></svg></div>
         <span>Suporte</span>
       </div>
     </div>
@@ -348,12 +325,15 @@ onAuthStateChanged(auth, async user => {
     currentPerms = roleData.modulos;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = '';
+    // Apply mobile layout multiple times to ensure DOM is ready
+    applyMobileLayout();
+    setTimeout(applyMobileLayout, 100);
+    setTimeout(applyMobileLayout, 300);
     document.getElementById('user-email').textContent = user.email;
     document.getElementById('user-avatar').textContent = user.email.substring(0,2).toUpperCase();
     applyRoleToSidebar();
     renderPage('dashboard');
     setTimeout(initBell, 2000);
-    setTimeout(initSupportDot, 2500);
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('main-layout').style.display = 'none';
@@ -606,9 +586,8 @@ async function pgDetalhe() {
             ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
             ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
           </div>
-          ${t.fotos&&t.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;">${t.fotos.map(f=>`<img src="${f}" style="width:56px;height:56px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open('${f}','_blank')">`).join('')}</div>`:''}
         </div>
-        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;align-self:flex-start;">×</button>
+        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
       </div>`;
     });
     html += '</div>';
@@ -667,31 +646,12 @@ window.showTarefaForm = (etapaId) => {
       <div class="form-group"><label class="form-label">Responsável</label><input class="form-input" id="tf-r-${etapaId}" placeholder="Nome"></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input type="date" class="form-input" id="tf-d-${etapaId}"></div>
       <div class="form-group"><label class="form-label">Prioridade</label><select class="form-input" id="tf-p-${etapaId}"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
-      <div class="form-group form-full">
-        <label class="form-label">Fotos</label>
-        <input type="file" class="form-input" id="tf-f-${etapaId}" accept="image/*" multiple style="padding:6px;">
-        <div id="tf-prev-${etapaId}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
-      </div>
     </div>
     <div class="form-actions">
       <button class="btn-secondary btn-sm" onclick="document.getElementById('tf-form-${etapaId}').innerHTML=''">Cancelar</button>
-      <button class="btn-primary btn-sm" id="tf-btn-${etapaId}" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
+      <button class="btn-primary btn-sm" onclick="window.salvarTarefa('${etapaId}')">Salvar</button>
     </div>
   </div>`;
-  setTimeout(() => {
-    const inp = document.getElementById('tf-f-' + etapaId);
-    if (inp) inp.onchange = () => {
-      const prev = document.getElementById('tf-prev-' + etapaId);
-      if (!prev) return;
-      prev.innerHTML = '';
-      Array.from(inp.files).forEach(f => {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(f);
-        img.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;';
-        prev.appendChild(img);
-      });
-    };
-  }, 50);
 };
 
 window.salvarTarefa = async (etapaId) => {
@@ -704,7 +664,7 @@ window.salvarTarefa = async (etapaId) => {
   for (const f of Array.from(files)) {
     try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
   }
-  await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, status:'pendente', fotos, created_at:serverTimestamp()});
+  await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, observacao:document.getElementById(`tf-o-${etapaId}`)?.value||'', status:'pendente', fotos, created_at:serverTimestamp()});
   await pgDetalhe();
 };
 
@@ -1442,8 +1402,17 @@ async function loadNotifications() {
       const tSnap = await getDocs(sub(o.id,'tarefas'));
       tSnap.docs.forEach(d => {
         const t = d.data();
-        if (t.data_prevista === hoje && t.status !== 'concluida') {
-          notifs.push({tipo:'tarefa', obra:o.nome, texto: t.nome, icon:'📋'});
+        if (!t.data_prevista || t.status === 'concluida') return;
+        const prazo = new Date(t.data_prevista + 'T00:00:00');
+        const diffDias = Math.ceil((prazo - new Date(hoje)) / (1000*60*60*24));
+        if (diffDias === 0) {
+          notifs.push({tipo:'tarefa', obra:o.nome, texto:'⏰ Vence hoje: ' + t.nome, icon:'📋', urgencia:'hoje'});
+        } else if (diffDias === 1) {
+          notifs.push({tipo:'tarefa', obra:o.nome, texto:'Vence amanhã: ' + t.nome, icon:'📋', urgencia:'amanha'});
+        } else if (diffDias === 2 || diffDias === 3) {
+          notifs.push({tipo:'tarefa', obra:o.nome, texto:'Vence em ' + diffDias + ' dias: ' + t.nome, icon:'📋', urgencia:'proxima'});
+        } else if (diffDias < 0) {
+          notifs.push({tipo:'tarefa', obra:o.nome, texto:'⚠ Atrasada: ' + t.nome, icon:'🔴', urgencia:'atrasada'});
         }
       });
       const cSnap = await getDocs(sub(o.id,'contas'));
@@ -1492,10 +1461,12 @@ async function loadNotifications() {
 
   content.innerHTML = notifs.map(n => {
     const click = n.notifId ? ' onclick="window.marcarLida(\'' + n.notifId + '\')" style="cursor:pointer;"' : '';
-    return '<div' + click + ' style="padding:10px 16px;border-bottom:0.5px solid #21262D;display:flex;align-items:flex-start;gap:10px;">' +
+    const cor = n.urgencia==='atrasada'?'#9A4A53':n.urgencia==='hoje'?'#8C603E':n.urgencia==='amanha'?'#8B949E':'#484F58';
+    const bg = n.urgencia==='atrasada'?'background:#2A1014;':n.urgencia==='hoje'?'background:#2A1C0A;':'';
+    return '<div' + click + ' style="padding:10px 16px;border-bottom:0.5px solid #21262D;display:flex;align-items:flex-start;gap:10px;' + bg + '">' +
       '<span style="font-size:14px;flex-shrink:0;">' + n.icon + '</span>' +
       '<div>' +
-        '<div style="font-size:12px;color:#fff;">' + n.texto + '</div>' +
+        '<div style="font-size:12px;color:' + cor + ';">' + n.texto + '</div>' +
         '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + n.obra + (n.notifId ? ' · clique para marcar como lida' : '') + '</div>' +
       '</div>' +
     '</div>';
@@ -1517,7 +1488,13 @@ async function initBell() {
     let count = 0;
     for (const o of obras) {
       const tSnap = await getDocs(sub(o.id,'tarefas'));
-      tSnap.docs.forEach(d => { const t=d.data(); if(t.data_prevista===hoje&&t.status!=='concluida') count++; });
+      tSnap.docs.forEach(d => {
+        const t=d.data();
+        if (!t.data_prevista||t.status==='concluida') return;
+        const prazo = new Date(t.data_prevista+'T00:00:00');
+        const diffDias = Math.ceil((prazo - new Date(hoje))/(1000*60*60*24));
+        if (diffDias <= 3) count++;
+      });
       const cSnap = await getDocs(sub(o.id,'contas'));
       cSnap.docs.forEach(d => { const c=d.data(); if(c.data_vencimento===hoje&&c.status==='pendente') count++; });
     }
@@ -1747,281 +1724,162 @@ window.removerUsuario = async (id) => {
 // ══ SUPORTE ══
 const ADMIN_EMAIL = 'ana.beatriz.sava@gmail.com';
 const suporteCol = () => collection(db, 'suporte');
+
 const TIPO_LABELS = { melhoria: 'Melhoria', bug: 'Bug' };
 const TIPO_BADGE = { melhoria: 'background:#1C2333;color:#8B949E', bug: 'background:#2A1014;color:#9A4A53' };
 const STATUS_LABELS = { aberta: 'Aberta', analise: 'Em análise', resolvida: 'Resolvida' };
-const STATUS_BADGE = { aberta: 'background:#2A1C0A;color:#8C603E', analise: 'background:#1C2333;color:#8B949E', resolvida: 'background:#1A2820;color:#3FB950' };
-const STATUS_ICON = { aberta: '#FAC775', analise: '#8B949E', resolvida: '#3FB950' };
-const URGENCY_COLOR = { bug: '#E24B4A', melhoria: '#185FA5' };
-let supFilter = 'todas';
+const STATUS_BADGE = {
+  aberta: 'background:#2A1C0A;color:#8C603E',
+  analise: 'background:#1C2333;color:#8B949E',
+  resolvida: 'background:#1A2820;color:#3FB950'
+};
 
 async function pgSuporte() {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
+
+  // Load tickets
   let q;
   if (isAdmin) {
     q = query(suporteCol(), orderBy('created_at', 'desc'));
   } else {
-    q = query(suporteCol(), where('user_email', '==', currentUser.email));
+    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
   }
+
   const snap = await getDocs(q);
-  let tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
-  if (!isAdmin) tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
+  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
 
-  const nAbertas = tickets.filter(t => t.status === 'aberta').length;
-  const nAnalise = tickets.filter(t => t.status === 'analise').length;
-  const nResolvidas = tickets.filter(t => t.status === 'resolvida').length;
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+    '<div><div class="page-title">Suporte</div><div class="page-sub">' +
+      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
+    '</div></div>' +
+    (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
+  '</div>';
 
-  let html = '';
-
-  if (isAdmin) {
-    // ── ADMIN VIEW ──
-    html += '<div style="margin-bottom:20px;"><div class="page-title">Suporte</div><div class="page-sub">Painel administrativo — todas as demandas</div></div>';
-    html +=
-      '<div class="stats-grid" style="margin-bottom:20px;">' +
-        '<div class="stat-card"><div class="stat-val">' + tickets.length + '</div><div class="stat-lbl">Total</div></div>' +
-        '<div class="stat-card"><div class="stat-val" style="color:#8C603E;">' + nAbertas + '</div><div class="stat-lbl">Abertas</div></div>' +
-        '<div class="stat-card"><div class="stat-val" style="color:#8B949E;">' + nAnalise + '</div><div class="stat-lbl">Em análise</div></div>' +
-        '<div class="stat-card"><div class="stat-val" style="color:#3FB950;">' + nResolvidas + '</div><div class="stat-lbl">Resolvidas</div></div>' +
-      '</div>';
-
-    const chips = [['todas','Todas'],['aberta','Abertas'],['analise','Em análise'],['resolvida','Resolvidas'],['bug','Bug'],['melhoria','Melhoria']];
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">';
-    chips.forEach(function(c) {
-      const v = c[0], l = c[1], active = supFilter === v;
-      html += '<div onclick="window.setSupFilter(\x27' + v + '\x27)" style="font-size:11px;padding:4px 12px;border-radius:999px;border:0.5px solid ' + (active?'#1D9E75':'#21262D') + ';background:' + (active?'#1D9E75':'transparent') + ';color:' + (active?'#fff':'#484F58') + ';cursor:pointer;">' + l + '</div>';
-    });
-    html += '</div>';
-
-    let filtered = tickets;
-    if (supFilter === 'aberta' || supFilter === 'analise' || supFilter === 'resolvida') filtered = tickets.filter(function(t){ return t.status === supFilter; });
-    else if (supFilter === 'bug' || supFilter === 'melhoria') filtered = tickets.filter(function(t){ return t.tipo === supFilter; });
-
-    if (!filtered.length) {
-      html += '<div class="card"><div class="empty-state">Nenhuma demanda neste filtro</div></div>';
-    } else {
-      filtered.forEach(function(t) {
-        const dataFmt = t.created_at && t.created_at.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-        const dataRes = t.resolved_at && t.resolved_at.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-        const initials = t.user_email ? t.user_email.substring(0,2).toUpperCase() : '??';
-        const isResolvida = t.status === 'resolvida';
-        const barColor = URGENCY_COLOR[t.tipo] || '#484F58';
-        const tituloEsc = t.titulo ? t.titulo.replace(/\x27/g, '') : '';
-        html +=
-          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;margin-bottom:8px;overflow:hidden;opacity:' + (isResolvida?'0.65':'1') + ';">' +
-            '<div style="display:flex;">' +
-              '<div style="width:3px;background:' + barColor + ';flex-shrink:0;"></div>' +
-              '<div style="flex:1;min-width:0;">' +
-                '<div onclick="window.toggleTicket(\x27' + t.id + '\x27)" style="padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
-                  '<div style="width:30px;height:30px;border-radius:50%;background:#21262D;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#8B949E;flex-shrink:0;">' + initials + '</div>' +
-                  '<div style="flex:1;min-width:0;">' +
-                    '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:3px;">' + t.titulo + '</div>' +
-                    '<div style="font-size:11px;color:#484F58;">' + (t.user_email||'') + ' · ' + dataFmt + '</div>' +
-                  '</div>' +
-                  '<div style="display:flex;gap:5px;flex-shrink:0;align-items:center;">' +
-                    '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-                    '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-                    '<svg id="chevron-' + t.id + '" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="2,4 6,8 10,4" stroke="#484F58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' +
-                  '</div>' +
-                '</div>' +
-                '<div id="ticket-body-' + t.id + '" style="display:none;">' +
-                  '<div style="height:0.5px;background:#21262D;"></div>' +
-                  '<div style="padding:12px 16px 12px 58px;font-size:12px;color:#8B949E;line-height:1.6;">' + (t.descricao||'') + '</div>' +
-                  (t.resposta ? '<div style="margin:0 16px 12px;background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta enviada' + (dataRes?' · '+dataRes:'') + '</div><div style="font-size:12px;color:#fff;line-height:1.6;">' + t.resposta + '</div></div>' : '') +
-                  '<div style="height:0.5px;background:#21262D;"></div>' +
-                  '<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-                    (!isResolvida && t.status === 'aberta' ? '<button onclick="window.avancarTicket(\x27' + t.id + '\x27,\x27analise\x27)" class="btn-secondary btn-sm">Em análise</button>' : '') +
-                    (isResolvida ? '<button onclick="window.reabrirTicket(\x27' + t.id + '\x27)" class="btn-secondary btn-sm">Reabrir</button>' : '') +
-                    '<button onclick="window.delTicket(\x27' + t.id + '\x27)" style="margin-left:auto;background:transparent;border:0.5px solid #2A1014;border-radius:6px;padding:5px 12px;font-size:11px;color:#9A4A53;cursor:pointer;">Excluir</button>' +
-                  '</div>' +
-                  (!isResolvida ?
-                    '<div style="padding:10px 16px 14px;border-top:0.5px solid #21262D;background:#0D1117;">' +
-                      '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Responder ao usuário</div>' +
-                      '<textarea id="reply-' + t.id + '" style="width:100%;background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;resize:none;height:72px;font-family:inherit;" placeholder="Digite sua resposta... ela será exibida para o usuário no chamado."></textarea>' +
-                      '<div style="display:flex;justify-content:flex-end;margin-top:8px;"><button onclick="window.enviarResposta(\x27' + t.id + '\x27,\x27' + (t.user_email||'') + '\x27,\x27' + tituloEsc + '\x27)" style="background:#1D9E75;border:none;border-radius:6px;padding:7px 18px;font-size:12px;color:#fff;cursor:pointer;font-weight:500;">Enviar resposta e resolver</button></div>' +
-                    '</div>'
-                  : '') +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
-      });
-    }
-
-    const dot = document.getElementById('suporte-dot');
-    const dotMobile = document.getElementById('suporte-dot-mobile');
-    if (dot) dot.style.display = 'none';
-    if (dotMobile) dotMobile.style.display = 'none';
-
-  } else {
-    // ── STAND/USER VIEW ──
-    const nAbertasUser = tickets.filter(t => t.status !== 'resolvida').length;
-    const nResolvidasUser = tickets.filter(t => t.status === 'resolvida').length;
-
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
-      '<div><div class="page-title">Suporte</div><div class="page-sub">Suas demandas</div></div>' +
-      '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' +
+  if (isAdmin && abertas > 0) {
+    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
+      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
     '</div>';
+  }
 
-    html += '<div id="ticket-form-wrap"></div>';
+  html += '<div id="ticket-form-wrap"></div>';
 
-    if (tickets.length) {
-      html +=
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">' +
-          '<div class="stat-card"><div class="stat-val" style="color:#FAC775;">' + nAbertasUser + '</div><div class="stat-lbl">Em aberto</div></div>' +
-          '<div class="stat-card"><div class="stat-val" style="color:#3FB950;">' + nResolvidasUser + '</div><div class="stat-lbl">Resolvidas</div></div>' +
-        '</div>';
-    }
-
-    if (!tickets.length) {
-      html +=
-        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;padding:40px 24px;text-align:center;">' +
-          '<div style="width:48px;height:48px;border-radius:50%;background:#21262D;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
-            '<svg width="22" height="22" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#484F58" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="#484F58" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.7" fill="#484F58"/></svg>' +
+  if (!tickets.length) {
+    html += '<div class="card"><div class="empty-state">' +
+      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
+    '</div></div>';
+  } else {
+    tickets.forEach(t => {
+      const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+      const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+              '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+            '</div>' +
+            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
           '</div>' +
-          '<div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:6px;">Nenhuma demanda ainda</div>' +
-          '<div style="font-size:12px;color:#484F58;margin-bottom:20px;">Encontrou um problema ou tem uma sugestão?<br>Abre um chamado e nossa equipe responde em breve.</div>' +
-          '<button class="btn-primary" onclick="window.showTicketForm()">Abrir primeiro chamado</button>' +
-        '</div>';
-    } else {
-      tickets.forEach(function(t) {
-        const dataFmt = t.created_at && t.created_at.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-        const dataRes = t.resolved_at && t.resolved_at.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-        const isResolvida = t.status === 'resolvida';
-        const dotColor = STATUS_ICON[t.status] || '#484F58';
-
-        html +=
-          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;margin-bottom:10px;overflow:hidden;">' +
-            // header clicável
-            '<div onclick="window.toggleTicket(\x27' + t.id + '\x27)" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
-              '<div style="width:8px;height:8px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></div>' +
-              '<div style="flex:1;min-width:0;">' +
-                '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:3px;">' + t.titulo + '</div>' +
-                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-                  '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-                  '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-                  '<span style="font-size:10px;color:#484F58;">' + dataFmt + '</span>' +
-                  (t.resposta ? '<span style="font-size:10px;color:#3FB950;">· resposta disponível</span>' : '') +
-                '</div>' +
-              '</div>' +
-              '<svg id="chevron-' + t.id + '" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="2,4 6,8 10,4" stroke="#484F58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' +
-            '</div>' +
-            // corpo expansível
-            '<div id="ticket-body-' + t.id + '" style="display:none;">' +
-              '<div style="height:0.5px;background:#21262D;"></div>' +
-              '<div style="padding:14px 16px;">' +
-                '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Sua mensagem</div>' +
-                '<div style="font-size:13px;color:#8B949E;line-height:1.6;background:#0D1117;border-radius:8px;padding:10px 12px;">' + (t.descricao||'') + '</div>' +
-              '</div>' +
-              (t.resposta ?
-                '<div style="padding:0 16px 14px;">' +
-                  '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
-                  '<div style="background:#1A2820;border:0.5px solid #2E4030;border-radius:8px;padding:12px 14px;">' +
-                    '<div style="font-size:13px;color:#fff;line-height:1.6;">' + t.resposta + '</div>' +
-                  '</div>' +
-                '</div>'
-              : (!isResolvida ?
-                '<div style="padding:0 16px 14px;">' +
-                  '<div style="background:#2A1C0A;border-radius:8px;padding:10px 12px;font-size:12px;color:#8C603E;">Aguardando resposta da equipe de suporte...</div>' +
-                '</div>'
-              : '')) +
-              (isResolvida ?
-                '<div style="height:0.5px;background:#21262D;"></div>' +
-                '<div style="padding:10px 16px;">' +
-                  '<button onclick="window.reabrirTicketUser(\x27' + t.id + '\x27)" style="background:transparent;border:0.5px solid #21262D;border-radius:6px;padding:6px 14px;font-size:11px;color:#8B949E;cursor:pointer;">Reabrir chamado</button>' +
-                '</div>'
-              : '') +
-            '</div>' +
-          '</div>';
-      });
-    }
+          (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
+            (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
+            '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
+          '</div>' : '') +
+        '</div>' +
+        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
+        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
+          '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+          '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
+        '</div>' : '') +
+      '</div>';
+    });
   }
 
   document.getElementById('content').innerHTML = html;
 }
 
-window.toggleTicket = function(id) {
-  const body = document.getElementById('ticket-body-' + id);
-  const chevron = document.getElementById('chevron-' + id);
-  if (!body) return;
-  const isOpen = body.style.display !== 'none';
-  body.style.display = isOpen ? 'none' : 'block';
-  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-};
-
-window.setSupFilter = function(f) { supFilter = f; pgSuporte(); };
-
-window.enviarResposta = async function(id, userEmail, titulo) {
-  const ta = document.getElementById('reply-' + id);
-  if (!ta) return;
-  const resposta = ta.value.trim();
-  if (!resposta) return alert('Digite uma resposta antes de enviar.');
-  await updateDoc(doc(db,'suporte',id), { status:'resolvida', resposta, resolved_at: serverTimestamp() });
-  await addDoc(collection(db,'notificacoes'), { para: userEmail, tipo: 'suporte_resolvido', texto: 'Sua demanda "' + titulo + '" foi resolvida!', lida: false, created_at: serverTimestamp() });
-  await pgSuporte();
-};
-
-window.reabrirTicket = async function(id) {
-  await updateDoc(doc(db,'suporte',id), { status:'aberta', resposta: null, resolved_at: null });
-  await pgSuporte();
-};
-
-window.reabrirTicketUser = async function(id) {
-  await updateDoc(doc(db,'suporte',id), { status:'aberta', resposta: null, resolved_at: null });
-  await pgSuporte();
-};
-
-window.delTicket = async function(id) {
-  if (!confirm('Excluir este chamado permanentemente?')) return;
-  await deleteDoc(doc(db,'suporte',id));
-  await pgSuporte();
-};
-
-window.showTicketForm = function() {
-  const wrap = document.getElementById('ticket-form-wrap');
-  if (!wrap) return;
-  wrap.innerHTML =
+window.showTicketForm = () => {
+  document.getElementById('ticket-form-wrap').innerHTML =
     '<div class="form-wrap" style="margin-bottom:20px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById(\x27ticket-form-wrap\x27).innerHTML=\x27\x27">×</button></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">×</button></div>' +
       '<div class="form-grid">' +
-        '<div class="form-group"><label class="form-label">Tipo *</label><select class="form-input" id="tk-tipo"><option value="melhoria">Melhoria — quero uma nova funcionalidade</option><option value="bug">Bug — algo não está funcionando</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Tipo *</label>' +
+          '<select class="form-input" id="tk-tipo">' +
+            '<option value="melhoria">Melhoria — quero uma nova funcionalidade</option>' +
+            '<option value="bug">Bug — algo não está funcionando</option>' +
+          '</select>' +
+        '</div>' +
         '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="tk-titulo" placeholder="Ex: Adicionar campo de endereço na obra"></div>' +
         '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" style="height:96px;resize:none;" id="tk-desc" placeholder="Descreva em detalhes o que você precisa ou o problema que encontrou..."></textarea></div>' +
       '</div>' +
       '<div class="form-actions">' +
-        '<button class="btn-secondary" onclick="document.getElementById(\x27ticket-form-wrap\x27).innerHTML=\x27\x27">Cancelar</button>' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
         '<button class="btn-primary" onclick="window.salvarTicket()">Enviar demanda</button>' +
       '</div>' +
     '</div>';
 };
 
-window.salvarTicket = async function() {
+window.salvarTicket = async () => {
   const titulo = document.getElementById('tk-titulo').value.trim();
   const desc = document.getElementById('tk-desc').value.trim();
   if (!titulo) return alert('Título obrigatório');
   if (!desc) return alert('Descrição obrigatória');
-  await addDoc(suporteCol(), { titulo, descricao: desc, tipo: document.getElementById('tk-tipo').value, status: 'aberta', user_email: currentUser.email, user_uid: uid(), created_at: serverTimestamp() });
-  await addDoc(collection(db,'notificacoes'), { para: ADMIN_EMAIL, tipo: 'suporte', texto: 'Nova demanda de ' + currentUser.email + ': ' + titulo, lida: false, created_at: serverTimestamp() });
+
+  await addDoc(suporteCol(), {
+    titulo,
+    descricao: desc,
+    tipo: document.getElementById('tk-tipo').value,
+    status: 'aberta',
+    user_email: currentUser.email,
+    user_uid: uid(),
+    created_at: serverTimestamp()
+  });
+
+  // Notificação para o admin no sininho
+  await addDoc(collection(db,'notificacoes'), {
+    para: ADMIN_EMAIL,
+    tipo: 'suporte',
+    texto: 'Nova demanda de ' + currentUser.email + ': ' + titulo,
+    lida: false,
+    created_at: serverTimestamp()
+  });
+
   await pgSuporte();
 };
 
-window.avancarTicket = async function(id, novoStatus) {
+window.avancarTicket = async (id, novoStatus) => {
   await updateDoc(doc(db,'suporte',id), { status: novoStatus });
   await pgSuporte();
 };
 
-async function initSupportDot() {
-  if (!currentUser) return;
-  if (currentUser.email !== ADMIN_EMAIL) return;
-  try {
-    const snap = await getDocs(query(suporteCol(), where('status', 'in', ['aberta', 'analise'])));
-    const hasPending = !snap.empty;
-    const dot = document.getElementById('suporte-dot');
-    const dotMobile = document.getElementById('suporte-dot-mobile');
-    if (dot) dot.style.display = hasPending ? 'block' : 'none';
-    if (dotMobile) dotMobile.style.display = hasPending ? 'block' : 'none';
-  } catch(e) {}
-}
+window.resolverTicket = async (id) => {
+  const resposta = prompt('Digite a resposta/resolução para o usuário:');
+  if (!resposta) return;
+
+  // Get ticket to notify user
+  const ticketSnap = await getDoc(doc(db,'suporte',id));
+  const ticket = ticketSnap.data();
+
+  await updateDoc(doc(db,'suporte',id), {
+    status: 'resolvida',
+    resposta,
+    resolved_at: serverTimestamp()
+  });
+
+  // Notificação para o usuário que abriu
+  await addDoc(collection(db,'notificacoes'), {
+    para: ticket.user_email,
+    tipo: 'suporte_resolvido',
+    texto: 'Sua demanda "' + ticket.titulo + '" foi resolvida!',
+    lida: false,
+    created_at: serverTimestamp()
+  });
+
+  await pgSuporte();
+};
 
 
 // ── BOTTOM NAV MOBILE ──
@@ -2068,7 +1926,41 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 });
 
 
-// ── MOBILE: layout handled entirely by CSS ──
+// ── MOBILE LAYOUT FIX ──
+function applyMobileLayout() {
+  const isMobile = window.innerWidth <= 768;
+  const h = window.innerHeight;
+  const bn = document.getElementById('bottom-nav');
+  const app = document.getElementById('app');
+  const ml = document.getElementById('main-layout');
+  const bw = document.querySelector('.body-wrap');
+  const ct = document.getElementById('content');
+
+  if (isMobile) {
+    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:'+h+'px;';
+    if (app) app.style.cssText = 'width:100%;height:'+h+'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;overflow:hidden;';
+    if (ml) {
+      const topbarH = 48;
+      const navH = 56;
+      const bodyH = h - topbarH - navH;
+      ml.style.display = 'flex';
+      ml.style.cssText = 'display:flex;flex-direction:column;width:100%;height:'+(h-navH)+'px;overflow:hidden;';
+      if (bw) bw.style.cssText = 'display:flex;flex:1;height:'+bodyH+'px;overflow:hidden;';
+      if (ct) ct.style.cssText = 'flex:1;height:'+bodyH+'px;overflow-y:auto;padding:16px 14px 16px;-webkit-overflow-scrolling:touch;';
+    }
+    if (bn) { bn.style.display = 'flex'; bn.style.flexDirection = 'row'; bn.style.alignItems = 'center'; }
+  } else {
+    document.body.style.cssText = '';
+    if (app) app.style.cssText = '';
+    if (ml) ml.style.cssText = '';
+    if (bw) bw.style.cssText = '';
+    if (ct) ct.style.cssText = '';
+    if (bn) bn.style.display = 'none';
+  }
+}
+applyMobileLayout();
+window.addEventListener('resize', applyMobileLayout);
+window.addEventListener('orientationchange', () => setTimeout(applyMobileLayout, 300));
 
 </script>
 </body>
