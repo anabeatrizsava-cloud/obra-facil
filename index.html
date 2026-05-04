@@ -582,6 +582,111 @@ window.abrirObra = async (id) => {
 };
 
 // ══ OBRA DETALHE ══
+function renderGantt(etapas, obra) {
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Coletar etapas com datas válidas
+  const withDates = etapas.filter(e => e.data_inicio && e.data_prevista_fim);
+  const noDates = etapas.filter(e => !e.data_inicio || !e.data_prevista_fim);
+
+  if (!withDates.length) {
+    return `<div class="card" style="margin-bottom:16px;padding:14px 16px;">
+      <div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:4px;">Cronograma</div>
+      <div style="font-size:12px;color:#484F58;">Cadastre datas de início e fim nas etapas para visualizar o Gantt.</div>
+    </div>`;
+  }
+
+  // Range total: menor data_inicio → maior data_prevista_fim (ou obra)
+  const allStarts = withDates.map(e => new Date(e.data_inicio+'T00:00:00'));
+  const allEnds   = withDates.map(e => new Date(e.data_prevista_fim+'T00:00:00'));
+  let rangeStart = new Date(Math.min(...allStarts));
+  let rangeEnd   = new Date(Math.max(...allEnds));
+
+  // Garantir ao menos 1 mês visível e incluir hoje
+  if (today < rangeStart) rangeStart = new Date(today);
+  if (today > rangeEnd)   rangeEnd   = new Date(today);
+  // Padding: 3 dias antes e depois
+  rangeStart.setDate(rangeStart.getDate() - 3);
+  rangeEnd.setDate(rangeEnd.getDate() + 3);
+
+  const totalDays = Math.max((rangeEnd - rangeStart) / 86400000, 1);
+
+  // Calcular posição relativa %
+  const pct = d => Math.max(0, Math.min(100, ((d - rangeStart) / 86400000 / totalDays) * 100));
+
+  // Meses no range para header
+  const months = [];
+  const cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  while (cur <= rangeEnd) {
+    const mStart = new Date(cur);
+    const mEnd   = new Date(cur.getFullYear(), cur.getMonth()+1, 0);
+    const left   = pct(mStart < rangeStart ? rangeStart : mStart);
+    const right  = pct(mEnd   > rangeEnd   ? rangeEnd   : mEnd);
+    months.push({ label: mStart.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''), left, width: right-left });
+    cur.setMonth(cur.getMonth()+1);
+  }
+
+  // Linha do hoje
+  const todayPct = pct(today);
+
+  // Cor e label por status/atraso
+  const barStyle = (et) => {
+    if (et.status === 'concluida') return { bg:'#0F6E56', color:'#9FE1CB', label:'✓ concluída' };
+    const fim = new Date(et.data_prevista_fim+'T00:00:00');
+    if (fim < today)              return { bg:'#993C1D', color:'#F5C4B3', label:'⚠ atrasada' };
+    if (et.status === 'andamento') return { bg:'#3C3489', color:'#CECBF6', label:'em andamento' };
+    return { bg:'#30363D', color:'#8B949E', label:'planejada' };
+  };
+
+  // Linhas das etapas
+  const rows = withDates.map(et => {
+    const s   = new Date(et.data_inicio+'T00:00:00');
+    const e   = new Date(et.data_prevista_fim+'T00:00:00');
+    const left  = pct(s);
+    const width = Math.max(pct(e) - left, 1.5);
+    const bs    = barStyle(et);
+    const nome  = et.nome.length > 16 ? et.nome.slice(0,15)+'…' : et.nome;
+    return `<div style="display:flex;align-items:center;margin-bottom:6px;gap:0;">
+      <div style="width:100px;min-width:100px;font-size:11px;color:#8B949E;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>
+      <div style="flex:1;position:relative;height:24px;">
+        <div style="position:absolute;top:4px;height:16px;left:${left}%;width:${width}%;background:${bs.bg};border-radius:3px;display:flex;align-items:center;padding:0 5px;overflow:hidden;">
+          <span style="font-size:10px;color:${bs.color};white-space:nowrap;overflow:hidden;">${width>12?bs.label:''}</span>
+        </div>
+        <div style="position:absolute;top:0;bottom:0;left:${todayPct}%;width:1px;background:#484F58;opacity:0.6;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Aviso etapas sem data
+  const semData = noDates.length
+    ? `<div style="font-size:11px;color:#484F58;margin-top:6px;">${noDates.length} etapa${noDates.length>1?'s':''} sem datas cadastradas não ${noDates.length>1?'aparecem':'aparece'} no cronograma.</div>`
+    : '';
+
+  // Header de meses
+  const monthHeader = months.map(m =>
+    `<div style="position:absolute;left:${m.left}%;width:${m.width}%;text-align:center;font-size:10px;color:#484F58;overflow:hidden;">${m.label}</div>`
+  ).join('');
+
+  return `<div class="card" style="margin-bottom:16px;padding:14px 16px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:500;color:#fff;">Cronograma</span>
+      <span style="font-size:11px;color:#484F58;">hoje: ${today.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>
+    </div>
+    <div style="display:flex;align-items:center;margin-bottom:4px;gap:0;">
+      <div style="width:100px;min-width:100px;"></div>
+      <div style="flex:1;position:relative;height:16px;">${monthHeader}</div>
+    </div>
+    <div style="border-bottom:0.5px solid #21262D;margin-bottom:8px;margin-left:100px;"></div>
+    ${rows}
+    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+      ${[['#0F6E56','#9FE1CB','concluída'],['#993C1D','#F5C4B3','atrasada'],['#3C3489','#CECBF6','em andamento'],['#30363D','#8B949E','planejada']].map(([bg,c,l])=>
+        `<div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:${bg};"></div><span style="font-size:10px;color:#484F58;">${l}</span></div>`
+      ).join('')}
+    </div>
+    ${semData}
+  </div>`;
+}
+
 async function pgDetalhe() {
   const o = obraAberta;
   const [etSnap, tSnap] = await Promise.all([
@@ -602,6 +707,7 @@ async function pgDetalhe() {
     ${[['Cliente',o.nome_cliente||'—'],['Tipo',o.tipo||'—'],['Início',fmtD(o.data_inicio)],['Previsão fim',fmtD(o.data_prevista_fim)],['Orçamento',fmtR(o.valor_orcado)],['Responsável',o.responsavel_tecnico||'—']].map(([l,v])=>`<div class="info-card"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('')}
   </div>
   ${o.endereco?`<div class="card" style="padding:12px 14px;margin-bottom:16px;"><div class="info-label">Endereço</div><div style="font-size:13px;color:#fff;margin-top:4px;">${o.endereco}</div></div>`:''}
+  ${etapas.length ? renderGantt(etapas, o) : ''}
   <div class="sub-header"><span class="sub-title">Etapas e tarefas</span><button class="btn-primary btn-sm" onclick="window.showEtapaForm()">+ Nova etapa</button></div>
   <div id="etapa-form-wrap"></div>
   <div id="etapas-list">`;
