@@ -1751,82 +1751,174 @@ const STATUS_BADGE = {
   analise: 'background:#1C2333;color:#8B949E',
   resolvida: 'background:#1A2820;color:#3FB950'
 };
+const URGENCY_COLOR = { bug: '#E24B4A', melhoria: '#185FA5' };
+
+let supFilter = 'todas';
 
 async function pgSuporte() {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
 
-  // Load tickets — orderBy sem índice composto causa erro silencioso no Firestore
-  // Para não-admin: filtra por email sem orderBy e ordena no JS
   let q;
   if (isAdmin) {
     q = query(suporteCol(), orderBy('created_at', 'desc'));
   } else {
     q = query(suporteCol(), where('user_email', '==', currentUser.email));
   }
-
   const snap = await getDocs(q);
   let tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
-  if (!isAdmin) {
-    tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
-  }
-  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
+  if (!isAdmin) tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
 
-  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
-    '<div><div class="page-title">Suporte</div><div class="page-sub">' +
-      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
-    '</div></div>' +
-    (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
-  '</div>';
+  const nAbertas = tickets.filter(t => t.status === 'aberta').length;
+  const nAnalise = tickets.filter(t => t.status === 'analise').length;
+  const nResolvidas = tickets.filter(t => t.status === 'resolvida').length;
 
-  if (isAdmin && abertas > 0) {
-    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
-      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
-      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
-    '</div>';
-  }
+  let html = '';
 
-  html += '<div id="ticket-form-wrap"></div>';
+  if (isAdmin) {
+    html += '<div style="margin-bottom:20px;"><div class="page-title">Suporte</div><div class="page-sub">Painel administrativo — todas as demandas</div></div>';
 
-  if (!tickets.length) {
-    html += '<div class="card"><div class="empty-state">' +
-      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
-    '</div></div>';
-  } else {
-    tickets.forEach(t => {
-      const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-      const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
-              '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
-              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-            '</div>' +
-            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
-          '</div>' +
-          (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
-            (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
-            '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
-          '</div>' : '') +
-        '</div>' +
-        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
-        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
-          '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
-          '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
-        '</div>' : '') +
+    html +=
+      '<div class="stats-grid" style="margin-bottom:20px;">' +
+        '<div class="stat-card"><div class="stat-val">' + tickets.length + '</div><div class="stat-lbl">Total</div></div>' +
+        '<div class="stat-card"><div class="stat-val" style="color:#8C603E;">' + nAbertas + '</div><div class="stat-lbl">Abertas</div></div>' +
+        '<div class="stat-card"><div class="stat-val" style="color:#8B949E;">' + nAnalise + '</div><div class="stat-lbl">Em análise</div></div>' +
+        '<div class="stat-card"><div class="stat-val" style="color:#3FB950;">' + nResolvidas + '</div><div class="stat-lbl">Resolvidas</div></div>' +
       '</div>';
+
+    const chips = [['todas','Todas'],['aberta','Abertas'],['analise','Em análise'],['resolvida','Resolvidas'],['bug','Bug'],['melhoria','Melhoria']];
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">';
+    chips.forEach(function(c) {
+      var v = c[0], l = c[1], active = supFilter === v;
+      html += '<div onclick="window.setSupFilter('' + v + '')" style="font-size:11px;padding:4px 12px;border-radius:999px;border:0.5px solid ' + (active?'#1D9E75':'#21262D') + ';background:' + (active?'#1D9E75':'transparent') + ';color:' + (active?'#fff':'#484F58') + ';cursor:pointer;">' + l + '</div>';
     });
+    html += '</div>';
+
+    var filtered = tickets;
+    if (supFilter === 'aberta' || supFilter === 'analise' || supFilter === 'resolvida') filtered = tickets.filter(function(t){ return t.status === supFilter; });
+    else if (supFilter === 'bug' || supFilter === 'melhoria') filtered = tickets.filter(function(t){ return t.tipo === supFilter; });
+
+    if (!filtered.length) {
+      html += '<div class="card"><div class="empty-state">Nenhuma demanda neste filtro</div></div>';
+    } else {
+      filtered.forEach(function(t) {
+        var dataFmt = t.created_at && t.created_at.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+        var dataRes = t.resolved_at && t.resolved_at.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+        var initials = t.user_email ? t.user_email.substring(0,2).toUpperCase() : '??';
+        var isResolvida = t.status === 'resolvida';
+        var barColor = URGENCY_COLOR[t.tipo] || '#484F58';
+        var tituloEsc = t.titulo ? t.titulo.replace(/'/g, '\x27') : '';
+
+        html +=
+          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;margin-bottom:10px;overflow:hidden;opacity:' + (isResolvida?'0.75':'1') + ';">' +
+            '<div style="display:flex;">' +
+              '<div style="width:3px;background:' + barColor + ';flex-shrink:0;"></div>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">' +
+                  '<div style="width:32px;height:32px;border-radius:50%;background:#21262D;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#8B949E;flex-shrink:0;">' + initials + '</div>' +
+                  '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:4px;">' + t.titulo + '</div>' +
+                    '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">' + (t.user_email||'') + ' · ' + dataFmt + '</div>' +
+                    '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+                      '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+                      '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<div style="padding:0 16px 14px 60px;font-size:12px;color:#8B949E;line-height:1.6;">' + (t.descricao||'') + '</div>' +
+                (t.resposta ?
+                  '<div style="margin:0 16px 14px;background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 12px;">' +
+                    '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Sua resposta' + (dataRes?' · '+dataRes:'') + '</div>' +
+                    '<div style="font-size:12px;color:#fff;line-height:1.6;">' + t.resposta + '</div>' +
+                  '</div>'
+                : '') +
+                '<div style="height:0.5px;background:#21262D;margin:0 16px;"></div>' +
+                '<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+                  (!isResolvida && t.status === 'aberta' ? '<button onclick="window.avancarTicket('' + t.id + '','analise')" class="btn-secondary btn-sm">Em análise</button>' : '') +
+                  (isResolvida ? '<button onclick="window.reabrirTicket('' + t.id + '')" class="btn-secondary btn-sm">Reabrir</button>' : '') +
+                  '<button onclick="window.delTicket('' + t.id + '')" style="margin-left:auto;background:transparent;border:0.5px solid #2A1014;border-radius:6px;padding:5px 12px;font-size:11px;color:#9A4A53;cursor:pointer;">Excluir</button>' +
+                '</div>' +
+                (!isResolvida ?
+                  '<div style="padding:10px 16px 14px;border-top:0.5px solid #21262D;background:#0D1117;">' +
+                    '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Responder ao usuário</div>' +
+                    '<textarea id="reply-' + t.id + '" style="width:100%;background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;resize:none;height:64px;font-family:inherit;" placeholder="Digite sua resposta... ela será exibida para o usuário no chamado."></textarea>' +
+                    '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' +
+                      '<button onclick="window.enviarResposta('' + t.id + '','' + (t.user_email||'') + '','' + tituloEsc + '')" style="background:#1D9E75;border:none;border-radius:6px;padding:6px 16px;font-size:11px;color:#fff;cursor:pointer;">Enviar resposta e resolver</button>' +
+                    '</div>' +
+                  '</div>'
+                : '') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      });
+    }
+
+  } else {
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+      '<div><div class="page-title">Suporte</div><div class="page-sub">Suas demandas de suporte</div></div>' +
+      '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' +
+    '</div><div id="ticket-form-wrap"></div>';
+
+    if (!tickets.length) {
+      html += '<div class="card"><div class="empty-state">Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small></div></div>';
+    } else {
+      tickets.forEach(function(t) {
+        var dataFmt = t.created_at && t.created_at.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+        var dataRes = t.resolved_at && t.resolved_at.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+        html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
+          '<div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+            '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
+            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+          '</div>' +
+          '<div style="font-size:11px;color:#484F58;margin-bottom:8px;">Aberta em ' + dataFmt + '</div>' +
+          '<div style="font-size:13px;color:#8B949E;line-height:1.6;">' + (t.descricao||'') + '</div>' +
+          (t.resposta ?
+            '<div style="background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:10px;">' +
+              '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+              '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
+            '</div>' : '') +
+        '</div>';
+      });
+    }
   }
 
   document.getElementById('content').innerHTML = html;
 }
 
-window.showTicketForm = () => {
-  document.getElementById('ticket-form-wrap').innerHTML =
+window.setSupFilter = function(f) { supFilter = f; pgSuporte(); };
+
+window.enviarResposta = async function(id, userEmail, titulo) {
+  var ta = document.getElementById('reply-' + id);
+  if (!ta) return;
+  var resposta = ta.value.trim();
+  if (!resposta) return alert('Digite uma resposta antes de enviar.');
+  await updateDoc(doc(db,'suporte',id), { status:'resolvida', resposta, resolved_at: serverTimestamp() });
+  await addDoc(collection(db,'notificacoes'), {
+    para: userEmail, tipo: 'suporte_resolvido',
+    texto: 'Sua demanda "' + titulo + '" foi resolvida!',
+    lida: false, created_at: serverTimestamp()
+  });
+  await pgSuporte();
+};
+
+window.reabrirTicket = async function(id) {
+  await updateDoc(doc(db,'suporte',id), { status:'aberta', resposta: null, resolved_at: null });
+  await pgSuporte();
+};
+
+window.delTicket = async function(id) {
+  if (!confirm('Excluir este chamado permanentemente?')) return;
+  await deleteDoc(doc(db,'suporte',id));
+  await pgSuporte();
+};
+
+window.showTicketForm = function() {
+  var wrap = document.getElementById('ticket-form-wrap');
+  if (!wrap) return;
+  wrap.innerHTML =
     '<div class="form-wrap" style="margin-bottom:20px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">×</button></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById('ticket-form-wrap').innerHTML=''">×</button></div>' +
       '<div class="form-grid">' +
         '<div class="form-group"><label class="form-label">Tipo *</label>' +
           '<select class="form-input" id="tk-tipo">' +
@@ -1838,68 +1930,35 @@ window.showTicketForm = () => {
         '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" style="height:96px;resize:none;" id="tk-desc" placeholder="Descreva em detalhes o que você precisa ou o problema que encontrou..."></textarea></div>' +
       '</div>' +
       '<div class="form-actions">' +
-        '<button class="btn-secondary" onclick="document.getElementById(\'ticket-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-secondary" onclick="document.getElementById('ticket-form-wrap').innerHTML=''">Cancelar</button>' +
         '<button class="btn-primary" onclick="window.salvarTicket()">Enviar demanda</button>' +
       '</div>' +
     '</div>';
 };
 
-window.salvarTicket = async () => {
-  const titulo = document.getElementById('tk-titulo').value.trim();
-  const desc = document.getElementById('tk-desc').value.trim();
+window.salvarTicket = async function() {
+  var titulo = document.getElementById('tk-titulo').value.trim();
+  var desc = document.getElementById('tk-desc').value.trim();
   if (!titulo) return alert('Título obrigatório');
   if (!desc) return alert('Descrição obrigatória');
-
   await addDoc(suporteCol(), {
-    titulo,
-    descricao: desc,
+    titulo, descricao: desc,
     tipo: document.getElementById('tk-tipo').value,
     status: 'aberta',
     user_email: currentUser.email,
     user_uid: uid(),
     created_at: serverTimestamp()
   });
-
-  // Notificação para o admin no sininho
   await addDoc(collection(db,'notificacoes'), {
-    para: ADMIN_EMAIL,
-    tipo: 'suporte',
+    para: ADMIN_EMAIL, tipo: 'suporte',
     texto: 'Nova demanda de ' + currentUser.email + ': ' + titulo,
-    lida: false,
-    created_at: serverTimestamp()
+    lida: false, created_at: serverTimestamp()
   });
-
   await pgSuporte();
 };
 
-window.avancarTicket = async (id, novoStatus) => {
+window.avancarTicket = async function(id, novoStatus) {
   await updateDoc(doc(db,'suporte',id), { status: novoStatus });
-  await pgSuporte();
-};
-
-window.resolverTicket = async (id) => {
-  const resposta = prompt('Digite a resposta/resolução para o usuário:');
-  if (!resposta) return;
-
-  // Get ticket to notify user
-  const ticketSnap = await getDoc(doc(db,'suporte',id));
-  const ticket = ticketSnap.data();
-
-  await updateDoc(doc(db,'suporte',id), {
-    status: 'resolvida',
-    resposta,
-    resolved_at: serverTimestamp()
-  });
-
-  // Notificação para o usuário que abriu
-  await addDoc(collection(db,'notificacoes'), {
-    para: ticket.user_email,
-    tipo: 'suporte_resolvido',
-    texto: 'Sua demanda "' + ticket.titulo + '" foi resolvida!',
-    lida: false,
-    created_at: serverTimestamp()
-  });
-
   await pgSuporte();
 };
 
