@@ -729,9 +729,11 @@ async function pgDetalhe() {
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn-primary btn-xs" onclick="window.showTarefaForm('${et.id}')">+ Tarefa</button>
+          <button class="btn-secondary btn-xs" onclick="window.editarEtapa('${et.id}','${et.nome.replace(/'/g,"\\'")}','${et.data_inicio||''}','${et.data_prevista_fim||''}','${et.status||'pendente'}')">Editar</button>
           <button class="btn-secondary btn-xs" onclick="window.delEtapa('${et.id}')">Excluir</button>
         </div>
       </div>
+      <div id="et-edit-${et.id}"></div>
       <div id="tf-form-${et.id}"></div>`;
     ets.forEach(t => {
       html += `<div class="tarefa-row">
@@ -789,6 +791,45 @@ window.salvarEtapa = async () => {
   if (!nome) return alert('Nome obrigatório');
   const s = await getDocs(sub(obraAberta.id,'etapas'));
   await addDoc(sub(obraAberta.id,'etapas'), {nome, obra_id:obraAberta.id, ordem:s.size+1, status:'pendente', data_inicio:document.getElementById('et-ini').value, data_prevista_fim:document.getElementById('et-fim').value, created_at:serverTimestamp()});
+  await pgDetalhe();
+};
+
+window.editarEtapa = (id, nome, ini, fim, status) => {
+  // Fechar qualquer outro form de edição aberto
+  document.querySelectorAll('[id^="et-edit-"]').forEach(el => { if (el.id !== 'et-edit-'+id) el.innerHTML = ''; });
+  const wrap = document.getElementById('et-edit-'+id);
+  if (!wrap) return;
+  if (wrap.innerHTML) { wrap.innerHTML = ''; return; } // toggle
+  wrap.innerHTML = `<div style="padding:12px 16px;background:#0D1117;border-top:0.5px solid #21262D;">
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="eted-nome-${id}" value="${nome}"></div>
+      <div class="form-group"><label class="form-label">Início</label><input type="date" class="form-input" id="eted-ini-${id}" value="${ini}"></div>
+      <div class="form-group"><label class="form-label">Previsão fim</label><input type="date" class="form-input" id="eted-fim-${id}" value="${fim}"></div>
+      <div class="form-group form-full"><label class="form-label">Status</label>
+        <select class="form-input" id="eted-st-${id}">
+          <option value="pendente" ${status==='pendente'?'selected':''}>Pendente</option>
+          <option value="andamento" ${status==='andamento'?'selected':''}>Em andamento</option>
+          <option value="concluida" ${status==='concluida'?'selected':''}>Concluída</option>
+          <option value="pausada" ${status==='pausada'?'selected':''}>Pausada</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary btn-sm" onclick="document.getElementById('et-edit-${id}').innerHTML=''">Cancelar</button>
+      <button class="btn-primary btn-sm" onclick="window.salvarEdicaoEtapa('${id}')">Salvar</button>
+    </div>
+  </div>`;
+};
+
+window.salvarEdicaoEtapa = async (id) => {
+  const nome = document.getElementById('eted-nome-'+id)?.value.trim();
+  if (!nome) return alert('Nome obrigatório');
+  await updateDoc(doc(db,'obras',obraAberta.id,'etapas',id), {
+    nome,
+    data_inicio: document.getElementById('eted-ini-'+id)?.value || '',
+    data_prevista_fim: document.getElementById('eted-fim-'+id)?.value || '',
+    status: document.getElementById('eted-st-'+id)?.value || 'pendente'
+  });
   await pgDetalhe();
 };
 
