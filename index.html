@@ -1790,7 +1790,7 @@ async function pgSuporte() {
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">';
     chips.forEach(function(c) {
       var v = c[0], l = c[1], active = supFilter === v;
-      html += '<div onclick="window.setSupFilter('' + v + '')" style="font-size:11px;padding:4px 12px;border-radius:999px;border:0.5px solid ' + (active?'#1D9E75':'#21262D') + ';background:' + (active?'#1D9E75':'transparent') + ';color:' + (active?'#fff':'#484F58') + ';cursor:pointer;">' + l + '</div>';
+      html += '<div onclick="window.setSupFilter(\x27' + v + '\x27)" style="font-size:11px;padding:4px 12px;border-radius:999px;border:0.5px solid ' + (active?'#1D9E75':'#21262D') + ';background:' + (active?'#1D9E75':'transparent') + ';color:' + (active?'#fff':'#484F58') + ';cursor:pointer;">' + l + '</div>';
     });
     html += '</div>';
 
