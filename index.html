@@ -1834,16 +1834,16 @@ async function pgSuporte() {
                 : '') +
                 '<div style="height:0.5px;background:#21262D;margin:0 16px;"></div>' +
                 '<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-                  (!isResolvida && t.status === 'aberta' ? '<button onclick="window.avancarTicket('' + t.id + '','analise')" class="btn-secondary btn-sm">Em análise</button>' : '') +
-                  (isResolvida ? '<button onclick="window.reabrirTicket('' + t.id + '')" class="btn-secondary btn-sm">Reabrir</button>' : '') +
-                  '<button onclick="window.delTicket('' + t.id + '')" style="margin-left:auto;background:transparent;border:0.5px solid #2A1014;border-radius:6px;padding:5px 12px;font-size:11px;color:#9A4A53;cursor:pointer;">Excluir</button>' +
+                  (!isResolvida && t.status === 'aberta' ? '<button onclick="window.avancarTicket(\x27' + t.id + '\x27,\x27analise\x27)" class="btn-secondary btn-sm">Em análise</button>' : '') +
+                  (isResolvida ? '<button onclick="window.reabrirTicket(\x27' + t.id + '\x27)" class="btn-secondary btn-sm">Reabrir</button>' : '') +
+                  '<button onclick="window.delTicket(\x27' + t.id + '\x27)" style="margin-left:auto;background:transparent;border:0.5px solid #2A1014;border-radius:6px;padding:5px 12px;font-size:11px;color:#9A4A53;cursor:pointer;">Excluir</button>' +
                 '</div>' +
                 (!isResolvida ?
                   '<div style="padding:10px 16px 14px;border-top:0.5px solid #21262D;background:#0D1117;">' +
                     '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Responder ao usuário</div>' +
                     '<textarea id="reply-' + t.id + '" style="width:100%;background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;resize:none;height:64px;font-family:inherit;" placeholder="Digite sua resposta... ela será exibida para o usuário no chamado."></textarea>' +
                     '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' +
-                      '<button onclick="window.enviarResposta('' + t.id + '','' + (t.user_email||'') + '','' + tituloEsc + '')" style="background:#1D9E75;border:none;border-radius:6px;padding:6px 16px;font-size:11px;color:#fff;cursor:pointer;">Enviar resposta e resolver</button>' +
+                      '<button onclick="window.enviarResposta(\x27' + t.id + '\x27,\x27' + (t.user_email||'') + '\x27,\x27' + tituloEsc + '\x27)" style="background:#1D9E75;border:none;border-radius:6px;padding:6px 16px;font-size:11px;color:#fff;cursor:pointer;">Enviar resposta e resolver</button>' +
                     '</div>' +
                   '</div>'
                 : '') +
@@ -1918,7 +1918,7 @@ window.showTicketForm = function() {
   if (!wrap) return;
   wrap.innerHTML =
     '<div class="form-wrap" style="margin-bottom:20px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById('ticket-form-wrap').innerHTML=''">×</button></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><span style="font-size:15px;font-weight:500;color:#fff;">Nova demanda</span><button class="btn-close" onclick="document.getElementById(\x27ticket-form-wrap\x27).innerHTML=\x27\x27">×</button></div>' +
       '<div class="form-grid">' +
         '<div class="form-group"><label class="form-label">Tipo *</label>' +
           '<select class="form-input" id="tk-tipo">' +
@@ -1930,7 +1930,7 @@ window.showTicketForm = function() {
         '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" style="height:96px;resize:none;" id="tk-desc" placeholder="Descreva em detalhes o que você precisa ou o problema que encontrou..."></textarea></div>' +
       '</div>' +
       '<div class="form-actions">' +
-        '<button class="btn-secondary" onclick="document.getElementById('ticket-form-wrap').innerHTML=''">Cancelar</button>' +
+        '<button class="btn-secondary" onclick="document.getElementById(\x27ticket-form-wrap\x27).innerHTML=\x27\x27">Cancelar</button>' +
         '<button class="btn-primary" onclick="window.salvarTicket()">Enviar demanda</button>' +
       '</div>' +
     '</div>';
