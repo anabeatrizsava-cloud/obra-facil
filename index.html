@@ -1751,6 +1751,7 @@ const TIPO_LABELS = { melhoria: 'Melhoria', bug: 'Bug' };
 const TIPO_BADGE = { melhoria: 'background:#1C2333;color:#8B949E', bug: 'background:#2A1014;color:#9A4A53' };
 const STATUS_LABELS = { aberta: 'Aberta', analise: 'Em análise', resolvida: 'Resolvida' };
 const STATUS_BADGE = { aberta: 'background:#2A1C0A;color:#8C603E', analise: 'background:#1C2333;color:#8B949E', resolvida: 'background:#1A2820;color:#3FB950' };
+const STATUS_ICON = { aberta: '#FAC775', analise: '#8B949E', resolvida: '#3FB950' };
 const URGENCY_COLOR = { bug: '#E24B4A', melhoria: '#185FA5' };
 let supFilter = 'todas';
 
@@ -1774,6 +1775,7 @@ async function pgSuporte() {
   let html = '';
 
   if (isAdmin) {
+    // ── ADMIN VIEW ──
     html += '<div style="margin-bottom:20px;"><div class="page-title">Suporte</div><div class="page-sub">Painel administrativo — todas as demandas</div></div>';
     html +=
       '<div class="stats-grid" style="margin-bottom:20px;">' +
@@ -1804,14 +1806,12 @@ async function pgSuporte() {
         const initials = t.user_email ? t.user_email.substring(0,2).toUpperCase() : '??';
         const isResolvida = t.status === 'resolvida';
         const barColor = URGENCY_COLOR[t.tipo] || '#484F58';
-        const tituloEsc = t.titulo ? t.titulo.replace(/\x27/g, '\x27') : '';
-
+        const tituloEsc = t.titulo ? t.titulo.replace(/\x27/g, '') : '';
         html +=
           '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;margin-bottom:8px;overflow:hidden;opacity:' + (isResolvida?'0.65':'1') + ';">' +
             '<div style="display:flex;">' +
               '<div style="width:3px;background:' + barColor + ';flex-shrink:0;"></div>' +
               '<div style="flex:1;min-width:0;">' +
-                // ── HEADER clicável ──
                 '<div onclick="window.toggleTicket(\x27' + t.id + '\x27)" style="padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
                   '<div style="width:30px;height:30px;border-radius:50%;background:#21262D;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#8B949E;flex-shrink:0;">' + initials + '</div>' +
                   '<div style="flex:1;min-width:0;">' +
@@ -1821,19 +1821,13 @@ async function pgSuporte() {
                   '<div style="display:flex;gap:5px;flex-shrink:0;align-items:center;">' +
                     '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
                     '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-                    '<svg id="chevron-' + t.id + '" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;color:#484F58;flex-shrink:0;"><polyline points="2,4 6,8 10,4" stroke="#484F58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' +
+                    '<svg id="chevron-' + t.id + '" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="2,4 6,8 10,4" stroke="#484F58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' +
                   '</div>' +
                 '</div>' +
-                // ── CORPO expansível ──
                 '<div id="ticket-body-' + t.id + '" style="display:none;">' +
                   '<div style="height:0.5px;background:#21262D;"></div>' +
                   '<div style="padding:12px 16px 12px 58px;font-size:12px;color:#8B949E;line-height:1.6;">' + (t.descricao||'') + '</div>' +
-                  (t.resposta ?
-                    '<div style="margin:0 16px 12px;background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 12px;">' +
-                      '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta enviada' + (dataRes?' · '+dataRes:'') + '</div>' +
-                      '<div style="font-size:12px;color:#fff;line-height:1.6;">' + t.resposta + '</div>' +
-                    '</div>'
-                  : '') +
+                  (t.resposta ? '<div style="margin:0 16px 12px;background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta enviada' + (dataRes?' · '+dataRes:'') + '</div><div style="font-size:12px;color:#fff;line-height:1.6;">' + t.resposta + '</div></div>' : '') +
                   '<div style="height:0.5px;background:#21262D;"></div>' +
                   '<div style="padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
                     (!isResolvida && t.status === 'aberta' ? '<button onclick="window.avancarTicket(\x27' + t.id + '\x27,\x27analise\x27)" class="btn-secondary btn-sm">Em análise</button>' : '') +
@@ -1844,9 +1838,7 @@ async function pgSuporte() {
                     '<div style="padding:10px 16px 14px;border-top:0.5px solid #21262D;background:#0D1117;">' +
                       '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Responder ao usuário</div>' +
                       '<textarea id="reply-' + t.id + '" style="width:100%;background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;resize:none;height:72px;font-family:inherit;" placeholder="Digite sua resposta... ela será exibida para o usuário no chamado."></textarea>' +
-                      '<div style="display:flex;justify-content:flex-end;margin-top:8px;">' +
-                        '<button onclick="window.enviarResposta(\x27' + t.id + '\x27,\x27' + (t.user_email||'') + '\x27,\x27' + tituloEsc + '\x27)" style="background:#1D9E75;border:none;border-radius:6px;padding:7px 18px;font-size:12px;color:#fff;cursor:pointer;font-weight:500;">Enviar resposta e resolver</button>' +
-                      '</div>' +
+                      '<div style="display:flex;justify-content:flex-end;margin-top:8px;"><button onclick="window.enviarResposta(\x27' + t.id + '\x27,\x27' + (t.user_email||'') + '\x27,\x27' + tituloEsc + '\x27)" style="background:#1D9E75;border:none;border-radius:6px;padding:7px 18px;font-size:12px;color:#fff;cursor:pointer;font-weight:500;">Enviar resposta e resolver</button></div>' +
                     '</div>'
                   : '') +
                 '</div>' +
@@ -1856,33 +1848,91 @@ async function pgSuporte() {
       });
     }
 
-    // hide dot when admin opens suporte
     const dot = document.getElementById('suporte-dot');
     const dotMobile = document.getElementById('suporte-dot-mobile');
     if (dot) dot.style.display = 'none';
     if (dotMobile) dotMobile.style.display = 'none';
 
   } else {
-    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
-      '<div><div class="page-title">Suporte</div><div class="page-sub">Suas demandas de suporte</div></div>' +
+    // ── STAND/USER VIEW ──
+    const nAbertasUser = tickets.filter(t => t.status !== 'resolvida').length;
+    const nResolvidasUser = tickets.filter(t => t.status === 'resolvida').length;
+
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+      '<div><div class="page-title">Suporte</div><div class="page-sub">Suas demandas</div></div>' +
       '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' +
-    '</div><div id="ticket-form-wrap"></div>';
+    '</div>';
+
+    html += '<div id="ticket-form-wrap"></div>';
+
+    if (tickets.length) {
+      html +=
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">' +
+          '<div class="stat-card"><div class="stat-val" style="color:#FAC775;">' + nAbertasUser + '</div><div class="stat-lbl">Em aberto</div></div>' +
+          '<div class="stat-card"><div class="stat-val" style="color:#3FB950;">' + nResolvidasUser + '</div><div class="stat-lbl">Resolvidas</div></div>' +
+        '</div>';
+    }
+
     if (!tickets.length) {
-      html += '<div class="card"><div class="empty-state">Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small></div></div>';
+      html +=
+        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;padding:40px 24px;text-align:center;">' +
+          '<div style="width:48px;height:48px;border-radius:50%;background:#21262D;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
+            '<svg width="22" height="22" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#484F58" stroke-width="1.2"/><path d="M6 6C6 4.9 6.9 4 8 4C9.1 4 10 4.9 10 6C10 7.1 9 7.5 8 8V9" stroke="#484F58" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11" r="0.7" fill="#484F58"/></svg>' +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:6px;">Nenhuma demanda ainda</div>' +
+          '<div style="font-size:12px;color:#484F58;margin-bottom:20px;">Encontrou um problema ou tem uma sugestão?<br>Abre um chamado e nossa equipe responde em breve.</div>' +
+          '<button class="btn-primary" onclick="window.showTicketForm()">Abrir primeiro chamado</button>' +
+        '</div>';
     } else {
       tickets.forEach(function(t) {
         const dataFmt = t.created_at && t.created_at.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
         const dataRes = t.resolved_at && t.resolved_at.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-        html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
-          '<div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
-            '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
-            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-          '</div>' +
-          '<div style="font-size:11px;color:#484F58;margin-bottom:8px;">Aberta em ' + dataFmt + '</div>' +
-          '<div style="font-size:13px;color:#8B949E;line-height:1.6;">' + (t.descricao||'') + '</div>' +
-          (t.resposta ? '<div style="background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:10px;"><div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div><div style="font-size:13px;color:#fff;">' + t.resposta + '</div></div>' : '') +
-        '</div>';
+        const isResolvida = t.status === 'resolvida';
+        const dotColor = STATUS_ICON[t.status] || '#484F58';
+
+        html +=
+          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:12px;margin-bottom:10px;overflow:hidden;">' +
+            // header clicável
+            '<div onclick="window.toggleTicket(\x27' + t.id + '\x27)" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">' +
+              '<div style="width:8px;height:8px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></div>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:3px;">' + t.titulo + '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                  '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+                  '<span style="font-size:10px;padding:2px 7px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+                  '<span style="font-size:10px;color:#484F58;">' + dataFmt + '</span>' +
+                  (t.resposta ? '<span style="font-size:10px;color:#3FB950;">· resposta disponível</span>' : '') +
+                '</div>' +
+              '</div>' +
+              '<svg id="chevron-' + t.id + '" width="12" height="12" viewBox="0 0 12 12" fill="none" style="transition:transform 0.2s;flex-shrink:0;"><polyline points="2,4 6,8 10,4" stroke="#484F58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>' +
+            '</div>' +
+            // corpo expansível
+            '<div id="ticket-body-' + t.id + '" style="display:none;">' +
+              '<div style="height:0.5px;background:#21262D;"></div>' +
+              '<div style="padding:14px 16px;">' +
+                '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Sua mensagem</div>' +
+                '<div style="font-size:13px;color:#8B949E;line-height:1.6;background:#0D1117;border-radius:8px;padding:10px 12px;">' + (t.descricao||'') + '</div>' +
+              '</div>' +
+              (t.resposta ?
+                '<div style="padding:0 16px 14px;">' +
+                  '<div style="font-size:11px;color:#484F58;margin-bottom:6px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+                  '<div style="background:#1A2820;border:0.5px solid #2E4030;border-radius:8px;padding:12px 14px;">' +
+                    '<div style="font-size:13px;color:#fff;line-height:1.6;">' + t.resposta + '</div>' +
+                  '</div>' +
+                '</div>'
+              : (!isResolvida ?
+                '<div style="padding:0 16px 14px;">' +
+                  '<div style="background:#2A1C0A;border-radius:8px;padding:10px 12px;font-size:12px;color:#8C603E;">Aguardando resposta da equipe de suporte...</div>' +
+                '</div>'
+              : '')) +
+              (isResolvida ?
+                '<div style="height:0.5px;background:#21262D;"></div>' +
+                '<div style="padding:10px 16px;">' +
+                  '<button onclick="window.reabrirTicketUser(\x27' + t.id + '\x27)" style="background:transparent;border:0.5px solid #21262D;border-radius:6px;padding:6px 14px;font-size:11px;color:#8B949E;cursor:pointer;">Reabrir chamado</button>' +
+                '</div>'
+              : '') +
+            '</div>' +
+          '</div>';
       });
     }
   }
@@ -1907,15 +1957,16 @@ window.enviarResposta = async function(id, userEmail, titulo) {
   const resposta = ta.value.trim();
   if (!resposta) return alert('Digite uma resposta antes de enviar.');
   await updateDoc(doc(db,'suporte',id), { status:'resolvida', resposta, resolved_at: serverTimestamp() });
-  await addDoc(collection(db,'notificacoes'), {
-    para: userEmail, tipo: 'suporte_resolvido',
-    texto: 'Sua demanda "' + titulo + '" foi resolvida!',
-    lida: false, created_at: serverTimestamp()
-  });
+  await addDoc(collection(db,'notificacoes'), { para: userEmail, tipo: 'suporte_resolvido', texto: 'Sua demanda "' + titulo + '" foi resolvida!', lida: false, created_at: serverTimestamp() });
   await pgSuporte();
 };
 
 window.reabrirTicket = async function(id) {
+  await updateDoc(doc(db,'suporte',id), { status:'aberta', resposta: null, resolved_at: null });
+  await pgSuporte();
+};
+
+window.reabrirTicketUser = async function(id) {
   await updateDoc(doc(db,'suporte',id), { status:'aberta', resposta: null, resolved_at: null });
   await pgSuporte();
 };
