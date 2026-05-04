@@ -720,8 +720,11 @@ async function pgDetalhe() {
     const ets = tarefas.filter(t => t.etapa_id===et.id);
     const done = ets.filter(t => t.status==='concluida').length;
     const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
-    html += `<div class="etapa-card">
+    html += `<div class="etapa-card" data-etapa-id="${et.id}">
       <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div class="drag-handle" draggable="true" title="Arrastar para reordenar" style="cursor:grab;color:#30363D;flex-shrink:0;display:flex;align-items:center;padding:2px 4px 2px 0;touch-action:none;user-select:none;-webkit-user-select:none;">
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><circle cx="4" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="4" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="4" cy="13" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg>
+        </div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:500;color:#fff;">${et.nome}</div>
           <div style="font-size:11px;color:#484F58;margin-top:2px;">${ets.length?`${done}/${ets.length} tarefas · ${pct}%`:'Sem tarefas'}${et.data_prevista_fim?` · Fim: ${fmtD(et.data_prevista_fim)}`:''}</div>
@@ -755,6 +758,105 @@ async function pgDetalhe() {
   });
   html += '</div>';
   document.getElementById('content').innerHTML = html;
+  initEtapasDrag();
+}
+
+// ── DRAG & DROP ETAPAS ──
+function initEtapasDrag() {
+  const list = document.getElementById('etapas-list');
+  if (!list) return;
+  let dragEl = null, placeholder = null;
+
+  const getCards = () => [...list.querySelectorAll('.etapa-card')];
+
+  const makePlaceholder = (height) => {
+    const p = document.createElement('div');
+    p.style.cssText = `height:${height}px;border:1px dashed #30363D;border-radius:10px;margin-bottom:10px;background:transparent;`;
+    p.id = 'drag-placeholder';
+    return p;
+  };
+
+  const getRelY = (e) => {
+    const touch = e.touches ? e.touches[0] : e;
+    return touch.clientY - list.getBoundingClientRect().top + list.scrollTop;
+  };
+
+  const getCardBelow = (y) => {
+    return getCards().filter(c => c !== dragEl).find(c => {
+      const box = c.getBoundingClientRect();
+      const listTop = list.getBoundingClientRect().top;
+      const mid = box.top - listTop + box.height / 2 + list.scrollTop;
+      return y < mid;
+    }) || null;
+  };
+
+  // ── MOUSE ──
+  list.addEventListener('dragstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) { e.preventDefault(); return; }
+    const card = handle.closest('.etapa-card');
+    if (!card) return;
+    dragEl = card;
+    placeholder = makePlaceholder(card.offsetHeight);
+    setTimeout(() => { card.style.opacity = '0.35'; card.after(placeholder); }, 0);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragEl || !placeholder) return;
+    const below = getCardBelow(getRelY(e));
+    if (below) list.insertBefore(placeholder, below);
+    else list.appendChild(placeholder);
+  });
+
+  list.addEventListener('dragend', async () => {
+    if (!dragEl || !placeholder) return;
+    dragEl.style.opacity = '';
+    placeholder.replaceWith(dragEl);
+    placeholder = null;
+    await salvarOrdemEtapas();
+    dragEl = null;
+  });
+
+  // ── TOUCH (mobile) ──
+  list.addEventListener('touchstart', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+    const card = handle.closest('.etapa-card');
+    if (!card) return;
+    dragEl = card;
+    placeholder = makePlaceholder(card.offsetHeight);
+    card.style.opacity = '0.35';
+    card.after(placeholder);
+  }, { passive: false });
+
+  list.addEventListener('touchmove', e => {
+    if (!dragEl || !placeholder) return;
+    e.preventDefault();
+    const below = getCardBelow(getRelY(e));
+    if (below) list.insertBefore(placeholder, below);
+    else list.appendChild(placeholder);
+  }, { passive: false });
+
+  list.addEventListener('touchend', async () => {
+    if (!dragEl || !placeholder) return;
+    dragEl.style.opacity = '';
+    placeholder.replaceWith(dragEl);
+    placeholder = null;
+    await salvarOrdemEtapas();
+    dragEl = null;
+  });
+}
+
+async function salvarOrdemEtapas() {
+  const list = document.getElementById('etapas-list');
+  if (!list || !obraAberta) return;
+  const updates = [...list.querySelectorAll('.etapa-card')].map((card, i) =>
+    updateDoc(doc(db, 'obras', obraAberta.id, 'etapas', card.dataset.etapaId), { ordem: i + 1 })
+  );
+  await Promise.all(updates);
 }
 
 window.voltarObras = () => { obraAberta=null; renderPage('obras'); };
