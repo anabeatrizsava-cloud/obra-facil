@@ -1284,10 +1284,12 @@ window.showMatForm = async (oid) => {
   // Busca usuários cadastrados no sistema
   let userOpts = '<option value="">— Nenhum —</option>';
   try {
+    // Admin sempre aparece primeiro
+    userOpts += `<option value="${ADMIN_UID_EMAIL}">${ADMIN_UID_EMAIL}</option>`;
     const usersSnap = await getDocs(collection(db,'usuarios'));
     usersSnap.docs.forEach(d => {
       const u = d.data();
-      if (u.email) userOpts += `<option value="${u.email}">${u.email}</option>`;
+      if (u.email && u.email !== ADMIN_UID_EMAIL) userOpts += `<option value="${u.email}">${u.email}</option>`;
     });
   } catch(e) {}
 
