@@ -2190,11 +2190,11 @@ const STATUS_BADGE = {
   resolvida: 'background:#1A2820;color:#3FB950'
 };
 
-async function pgSuporte() {
+async function pgSuporte(abaAtiva) {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
+  if (!abaAtiva) abaAtiva = 'demandas';
 
-  // Carrega atualizações do sistema e tickets em paralelo
   let q;
   if (isAdmin) q = query(suporteCol(), orderBy('created_at', 'desc'));
   else q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
@@ -2206,7 +2206,7 @@ async function pgSuporte() {
 
   const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
   const atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
-  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
+  const pendentes = tickets.filter(t => t.status !== 'resolvida').length;
 
   const ATU_TIPO_BADGE = {
     funcionalidade: 'background:#0F6E56;color:#9FE1CB',
@@ -2218,66 +2218,151 @@ async function pgSuporte() {
     correcao: 'Correção',
     informativo: 'Informativo'
   };
+  const ATU_DOT_COLOR = { funcionalidade:'#1D9E75', correcao:'#3C3489', informativo:'#30363D' };
 
-  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
     '<div><div class="page-title">Suporte</div><div class="page-sub">' +
-      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
+      (isAdmin ? 'Painel administrativo' : 'Suas demandas de suporte') +
     '</div></div>' +
     (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
   '</div>';
 
-  // ── BLOCO ADMIN: publicar atualização ──
+  // ── ABAS (só admin) ──
   if (isAdmin) {
-    html += '<div class="card" style="margin-bottom:20px;border-color:#1D9E75;">' +
-      '<div style="font-size:13px;font-weight:500;color:#9FE1CB;margin-bottom:12px;">Publicar atualização do sistema</div>' +
-      '<div id="atu-form-wrap">' +
-        '<div class="form-grid">' +
-          '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="atu-titulo" placeholder="Ex: v1.3 — Nova funcionalidade Gantt"></div>' +
-          '<div class="form-group"><label class="form-label">Tipo</label>' +
-            '<select class="form-input" id="atu-tipo">' +
-              '<option value="funcionalidade">Nova funcionalidade</option>' +
-              '<option value="correcao">Correção</option>' +
-              '<option value="informativo">Informativo</option>' +
-            '</select>' +
-          '</div>' +
-          '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" id="atu-desc" style="height:80px;resize:none;" placeholder="Descreva o que mudou..."></textarea></div>' +
-        '</div>' +
-        '<div class="form-actions">' +
-          '<button class="btn-primary" onclick="window.publicarAtualizacao()">Publicar para todos os usuários</button>' +
-        '</div>' +
+    html += '<div style="display:flex;gap:0;border-bottom:0.5px solid #21262D;margin-bottom:20px;">' +
+      '<div onclick="window.pgSuporte(\'demandas\')" style="flex:1;padding:10px 0;text-align:center;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (abaAtiva==='demandas'?'#1D9E75':'transparent') + ';color:' + (abaAtiva==='demandas'?'#fff':'#484F58') + ';margin-bottom:-0.5px;">' +
+        'Demandas' + (pendentes ? ' <span style="display:inline-block;background:#993C1D;color:#F5C4B3;font-size:10px;padding:1px 6px;border-radius:99px;vertical-align:middle;">' + pendentes + '</span>' : '') +
+      '</div>' +
+      '<div onclick="window.pgSuporte(\'atualizacoes\')" style="flex:1;padding:10px 0;text-align:center;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (abaAtiva==='atualizacoes'?'#1D9E75':'transparent') + ';color:' + (abaAtiva==='atualizacoes'?'#fff':'#484F58') + ';margin-bottom:-0.5px;">' +
+        'Atualizações' +
       '</div>' +
     '</div>';
   }
 
-  // ── BLOCO USUÁRIO: notificações de atualização não lidas ──
-  if (!isAdmin) {
-    const nSnap = await getDocs(query(
-      collection(db,'notificacoes'),
-      where('para','==',currentUser.email),
-      where('tipo','==','atualizacao_sistema'),
-      where('lida','==',false)
-    ));
-    const naoLidas = nSnap.docs.map(d => ({id:d.id,...d.data()}));
-    if (naoLidas.length) {
-      html += '<div class="card" style="margin-bottom:16px;border-color:#1D9E75;">' +
-        '<div style="font-size:12px;font-weight:500;color:#9FE1CB;margin-bottom:8px;">' + naoLidas.length + ' atualização' + (naoLidas.length>1?'s':'') + ' não lida' + (naoLidas.length>1?'s':'') + '</div>';
-      naoLidas.forEach(n => {
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
-          '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;flex-shrink:0;margin-top:4px;"></div>' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:13px;color:#fff;">' + n.titulo + '</div>' +
-            '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + (ATU_TIPO_LABEL[n.atu_tipo]||'') + '</div>' +
-          '</div>' +
-          '<button onclick="window.marcarLida(\'' + n.id + '\')" style="background:#21262D;border:0.5px solid #30363D;border-radius:6px;padding:4px 10px;font-size:11px;color:#8B949E;cursor:pointer;flex-shrink:0;">Marcar lida</button>' +
-        '</div>';
+  // ══ ABA DEMANDAS ══
+  if (!isAdmin || abaAtiva === 'demandas') {
+
+    // Bloco notificações de atualização não lidas (só usuários)
+    if (!isAdmin) {
+      const nSnap = await getDocs(query(
+        collection(db,'notificacoes'),
+        where('para','==',currentUser.email),
+        where('tipo','==','atualizacao_sistema'),
+        where('lida','==',false)
+      ));
+      const naoLidas = nSnap.docs.map(d => ({id:d.id,...d.data()}));
+      if (naoLidas.length) {
+        html += '<div class="card" style="margin-bottom:16px;border-color:#1D9E75;">' +
+          '<div style="font-size:12px;font-weight:500;color:#9FE1CB;margin-bottom:8px;">' + naoLidas.length + ' atualização' + (naoLidas.length>1?'s':'') + ' não lida' + (naoLidas.length>1?'s':'') + '</div>';
+        naoLidas.forEach(n => {
+          html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;flex-shrink:0;margin-top:4px;"></div>' +
+            '<div style="flex:1;"><div style="font-size:13px;color:#fff;">' + n.titulo + '</div>' +
+            '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + (ATU_TIPO_LABEL[n.atu_tipo]||'') + '</div></div>' +
+            '<button onclick="window.marcarLida(\'' + n.id + '\')" style="background:#21262D;border:0.5px solid #30363D;border-radius:6px;padding:4px 10px;font-size:11px;color:#8B949E;cursor:pointer;flex-shrink:0;">Marcar lida</button>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    // Filtros (só admin)
+    if (isAdmin) {
+      const filtros = [{k:'todas',l:'Todas'},{k:'aberta',l:'Abertas'},{k:'analise',l:'Em análise'},{k:'resolvida',l:'Resolvidas'}];
+      html += '<div id="filtro-wrap" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;">';
+      filtros.forEach(f => {
+        html += '<div onclick="window.filtrarTickets(\'' + f.k + '\')" data-filtro="' + f.k + '" style="background:#161B22;border:0.5px solid #21262D;border-radius:99px;padding:5px 14px;font-size:12px;cursor:pointer;white-space:nowrap;color:' + (f.k==='todas'?'#fff':'#484F58') + ';border-color:' + (f.k==='todas'?'#30363D':'#21262D') + ';">' + f.l + '</div>';
       });
       html += '</div>';
     }
+
+    html += '<div id="ticket-form-wrap"></div><div id="tickets-list">';
+
+    const renderTickets = (lista) => {
+      if (!lista.length) return '<div class="card"><div class="empty-state">' +
+        (isAdmin ? 'Nenhuma demanda neste filtro' : 'Você não tem demandas abertas') + '</div></div>';
+      return lista.map(t => {
+        const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+        const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+        const isResolvida = t.status === 'resolvida';
+        return '<div class="card" style="padding:14px 16px;margin-bottom:8px;' + (isResolvida?'opacity:0.55;':'') + '">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">' +
+                '<span style="font-size:13px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
+              '</div>' +
+              '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">' +
+                '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+                '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
+              '</div>' +
+              (isAdmin ? '<div style="font-size:11px;color:#484F58;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
+            '</div>' +
+            (!isResolvida && isAdmin ? '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">' +
+              (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm" style="font-size:11px;padding:4px 10px;">Em análise</button>' : '') +
+              '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:4px 10px;font-size:11px;color:#3FB950;cursor:pointer;">Resolver</button>' +
+            '</div>' : '') +
+          '</div>' +
+          '<div style="font-size:12px;color:#8B949E;line-height:1.6;">' + t.descricao + '</div>' +
+          (t.resposta ? '<div style="background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
+            '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+            '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
+          '</div>' : '') +
+        '</div>';
+      }).join('');
+    };
+
+    html += renderTickets(tickets) + '</div>';
+
+    // Guarda tickets em variável global para filtro client-side
+    window._suporteTickets = tickets;
+    window._renderTickets = renderTickets;
   }
 
-  // ── HISTÓRICO DE ATUALIZAÇÕES (admin + usuários) ──
-  if (atualizacoes.length) {
-    html += '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:12px;">Histórico de atualizações</div>';
+  // ══ ABA ATUALIZAÇÕES ══
+  if (isAdmin && abaAtiva === 'atualizacoes') {
+    html += '<div style="font-size:11px;font-weight:500;color:#484F58;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Publicar nova atualização</div>' +
+      '<div class="form-grid" style="margin-bottom:12px;">' +
+        '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="atu-titulo" placeholder="Ex: v1.4 — Módulo financeiro"></div>' +
+        '<div class="form-group"><label class="form-label">Tipo</label>' +
+          '<select class="form-input" id="atu-tipo">' +
+            '<option value="funcionalidade">Nova funcionalidade</option>' +
+            '<option value="correcao">Correção</option>' +
+            '<option value="informativo">Informativo</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" id="atu-desc" style="height:80px;resize:none;" placeholder="Descreva o que mudou..."></textarea></div>' +
+      '</div>' +
+      '<div style="margin-bottom:20px;">' +
+        '<button class="btn-primary" style="width:100%;" onclick="window.publicarAtualizacao()">Publicar para todos os usuários</button>' +
+      '</div>';
+
+    if (atualizacoes.length) {
+      html += '<div style="font-size:11px;font-weight:500;color:#484F58;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Histórico</div>';
+      atualizacoes.forEach(a => {
+        const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #21262D;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:' + (ATU_DOT_COLOR[a.tipo]||'#30363D') + ';flex-shrink:0;margin-top:5px;"></div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
+              '<div>' +
+                '<span style="display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;margin-bottom:3px;' + (ATU_TIPO_BADGE[a.tipo]||ATU_TIPO_BADGE.informativo) + '">' + (ATU_TIPO_LABEL[a.tipo]||a.tipo) + '</span>' +
+                '<div style="font-size:13px;font-weight:500;color:#fff;">' + a.titulo + '</div>' +
+                '<div style="font-size:11px;color:#484F58;margin-top:1px;">' + dataFmt + '</div>' +
+              '</div>' +
+              '<button onclick="window.delAtualizacao(\'' + a.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:11px;cursor:pointer;flex-shrink:0;padding-top:2px;">Excluir</button>' +
+            '</div>' +
+            '<div style="font-size:12px;color:#8B949E;margin-top:4px;line-height:1.5;">' + a.descricao + '</div>' +
+          '</div>' +
+        '</div>';
+      });
+    } else {
+      html += '<div class="card"><div class="empty-state">Nenhuma atualização publicada ainda</div></div>';
+    }
+  }
+
+  // Histórico de atualizações para usuários não admin
+  if (!isAdmin && atualizacoes.length) {
+    html += '<div style="font-size:13px;font-weight:500;color:#fff;margin-top:20px;margin-bottom:12px;">Histórico de atualizações</div>';
     atualizacoes.forEach(a => {
       const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
       html += '<div class="card" style="margin-bottom:8px;">' +
@@ -2289,56 +2374,29 @@ async function pgSuporte() {
           '<span style="font-size:11px;color:#484F58;flex-shrink:0;">' + dataFmt + '</span>' +
         '</div>' +
         '<div style="font-size:12px;color:#8B949E;line-height:1.5;">' + a.descricao + '</div>' +
-        (isAdmin ? '<div style="margin-top:8px;text-align:right;"><button onclick="window.delAtualizacao(\'' + a.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:11px;cursor:pointer;">Excluir</button></div>' : '') +
-      '</div>';
-    });
-    html += '<div style="margin-bottom:20px;"></div>';
-  }
-
-  // ── DIVIDER tickets ──
-  if (isAdmin && abertas > 0) {
-    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
-      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
-      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
-    '</div>';
-  }
-
-  html += '<div id="ticket-form-wrap"></div>';
-
-  if (!tickets.length) {
-    html += '<div class="card"><div class="empty-state">' +
-      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
-    '</div></div>';
-  } else {
-    tickets.forEach(t => {
-      const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-      const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
-              '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
-              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-            '</div>' +
-            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
-          '</div>' +
-          (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
-            (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
-            '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
-          '</div>' : '') +
-        '</div>' +
-        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
-        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
-          '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
-          '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
-        '</div>' : '') +
       '</div>';
     });
   }
 
   document.getElementById('content').innerHTML = html;
+  window._suporteTickets = tickets;
 }
+
+window.pgSuporte = pgSuporte;
+
+window.filtrarTickets = (filtro) => {
+  // Atualiza estilo dos pills
+  document.querySelectorAll('[data-filtro]').forEach(el => {
+    const ativo = el.dataset.filtro === filtro;
+    el.style.color = ativo ? '#fff' : '#484F58';
+    el.style.borderColor = ativo ? '#30363D' : '#21262D';
+  });
+  const lista = filtro === 'todas'
+    ? window._suporteTickets
+    : window._suporteTickets.filter(t => t.status === filtro);
+  const el = document.getElementById('tickets-list');
+  if (el && window._renderTickets) el.innerHTML = window._renderTickets(lista);
+};
 
 window.publicarAtualizacao = async () => {
   const titulo = document.getElementById('atu-titulo').value.trim();
@@ -2372,13 +2430,13 @@ window.publicarAtualizacao = async () => {
   });
   await Promise.all(notifPromises);
 
-  await pgSuporte();
+  await pgSuporte('atualizacoes');
 };
 
 window.delAtualizacao = async (id) => {
   if (!confirm('Excluir esta atualização?')) return;
   await deleteDoc(doc(db,'atualizacoes_sistema',id));
-  await pgSuporte();
+  await pgSuporte('atualizacoes');
 };
 
 window.showTicketForm = () => {
