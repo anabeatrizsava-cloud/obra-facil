@@ -2197,15 +2197,25 @@ async function pgSuporte(abaAtiva) {
 
   let q;
   if (isAdmin) q = query(suporteCol(), orderBy('created_at', 'desc'));
-  else q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
+  else q = query(suporteCol(), where('user_email', '==', currentUser.email));
 
-  const [snap, atuSnap] = await Promise.all([
-    getDocs(q),
-    getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')))
-  ]);
-
-  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
-  const atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  let tickets = [], atualizacoes = [];
+  try {
+    const snap = await getDocs(q);
+    tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+    tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
+  } catch(e) { console.warn('Suporte tickets error:', e); }
+  try {
+    const atuSnap = await getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')));
+    atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    // Fallback sem orderBy se índice não existir
+    try {
+      const atuSnap = await getDocs(collection(db,'atualizacoes_sistema'));
+      atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+      atualizacoes.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
+    } catch(e2) { console.warn('Atualizacoes error:', e2); }
+  }
   const pendentes = tickets.filter(t => t.status !== 'resolvida').length;
 
   const ATU_TIPO_BADGE = {
