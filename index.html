@@ -376,6 +376,10 @@ onAuthStateChanged(auth, async user => {
     }
     currentRole = roleData.role;
     currentPerms = roleData.modulos;
+    // Salva uid do usuário no Firestore para que admin possa ver obras dele
+    if (roleData.docId) {
+      updateDoc(doc(db,'usuarios',roleData.docId), { uid: user.uid }).catch(()=>{});
+    }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = '';
     // Apply mobile layout multiple times to ensure DOM is ready
@@ -428,6 +432,55 @@ const uid = () => currentUser.uid;
 const obrasCol = () => collection(db, 'obras');
 const obraRef = (id) => doc(db, 'obras', id);
 const sub = (obraId, name) => collection(db, 'obras', obraId, name);
+
+// ── HELPER: busca obras do usuário atual (admin vê obras dos stands também) ──
+async function getObras() {
+  const snapOwn = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  let obras = snapOwn.docs.map(d => ({id:d.id,...d.data()}));
+  if (currentRole === 'admin') {
+    const standsSnap = await getDocs(query(collection(db,'usuarios'), where('perfil','==','stand')));
+    const standUids = standsSnap.docs.map(d => d.data().uid).filter(Boolean);
+    for (const sUid of standUids) {
+      const sSnap = await getDocs(query(obrasCol(), where('uid','==',sUid)));
+      sSnap.docs.forEach(d => {
+        if (!obras.find(o => o.id === d.id)) obras.push({id:d.id,...d.data()});
+      });
+    }
+  }
+  return obras;
+}
+
+// ── HELPER: busca email do owner de uma obra (para notificar stand) ──
+const _ownerEmailCache = {};
+async function getOwnerEmail(obraId) {
+  if (_ownerEmailCache[obraId]) return _ownerEmailCache[obraId];
+  const obraDoc = await getDoc(obraRef(obraId));
+  if (!obraDoc.exists()) return null;
+  const obraUid = obraDoc.data().uid;
+  if (!obraUid || obraUid === uid()) return null; // própria obra, não notifica
+  const usersSnap = await getDocs(query(collection(db,'usuarios'), where('uid','==',obraUid)));
+  if (usersSnap.empty) return null;
+  const email = usersSnap.docs[0].data().email;
+  _ownerEmailCache[obraId] = email;
+  return email;
+}
+
+// ── NOTIFICAR STAND sobre alteração feita pelo admin ──
+async function notificarStand(obraId, obraNome, acao, detalhe) {
+  if (currentRole !== 'admin') return; // só admin notifica stand
+  const paraEmail = await getOwnerEmail(obraId);
+  if (!paraEmail) return; // obra é do próprio admin
+  await addDoc(collection(db,'notificacoes'), {
+    para: paraEmail,
+    de: currentUser.email,
+    obra_id: obraId,
+    obra_nome: obraNome,
+    acao,
+    detalhe,
+    lida: false,
+    created_at: serverTimestamp()
+  });
+}
 const fmtR = v => v ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v) : '—';
 const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
 const SL = {planejamento:'Planejamento', andamento:'Em andamento', pausada:'Pausada', concluida:'Concluída'};
@@ -455,7 +508,7 @@ async function renderPage(page) {
 
 // ══ DASHBOARD ══
 async function pgDash() {
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   const totOrc = obras.reduce((s,o) => s+(parseFloat(o.valor_orcado)||0), 0);
   const emAnd = obras.filter(o => o.status==='andamento').length;
@@ -489,7 +542,7 @@ window.goObras = () => { setPage('obras'); obraAberta=null; renderPage('obras');
 // ══ OBRAS ══
 async function pgObras() {
   setPage('obras');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.created_at?.seconds||0)-(a.created_at?.seconds||0));
   let html = `<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
     <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
@@ -893,6 +946,7 @@ window.salvarEtapa = async () => {
   if (!nome) return alert('Nome obrigatório');
   const s = await getDocs(sub(obraAberta.id,'etapas'));
   await addDoc(sub(obraAberta.id,'etapas'), {nome, obra_id:obraAberta.id, ordem:s.size+1, status:'pendente', data_inicio:document.getElementById('et-ini').value, data_prevista_fim:document.getElementById('et-fim').value, created_at:serverTimestamp()});
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Nova etapa criada', `Etapa "${nome}" foi adicionada à obra.`);
   await pgDetalhe();
 };
 
@@ -926,18 +980,23 @@ window.editarEtapa = (id, nome, ini, fim, status) => {
 window.salvarEdicaoEtapa = async (id) => {
   const nome = document.getElementById('eted-nome-'+id)?.value.trim();
   if (!nome) return alert('Nome obrigatório');
+  const novoStatus = document.getElementById('eted-st-'+id)?.value || 'pendente';
   await updateDoc(doc(db,'obras',obraAberta.id,'etapas',id), {
     nome,
     data_inicio: document.getElementById('eted-ini-'+id)?.value || '',
     data_prevista_fim: document.getElementById('eted-fim-'+id)?.value || '',
-    status: document.getElementById('eted-st-'+id)?.value || 'pendente'
+    status: novoStatus
   });
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Etapa editada', `Etapa "${nome}" foi atualizada (status: ${novoStatus}).`);
   await pgDetalhe();
 };
 
 window.delEtapa = async (id) => {
   if (!confirm('Excluir?')) return;
+  const etDoc = await getDoc(doc(db,'obras',obraAberta.id,'etapas',id));
+  const etNome = etDoc.exists() ? etDoc.data().nome : id;
   await deleteDoc(doc(db,'obras',obraAberta.id,'etapas',id));
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Etapa excluída', `Etapa "${etNome}" foi removida da obra.`);
   await pgDetalhe();
 };
 
@@ -976,24 +1035,31 @@ window.salvarTarefa = async (etapaId) => {
     try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
   }
   await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, observacao:document.getElementById(`tf-o-${etapaId}`)?.value||'', status:'pendente', fotos, created_at:serverTimestamp()});
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Nova tarefa criada', `Tarefa "${nome}" foi adicionada.`);
   await pgDetalhe();
 };
 
 window.togTarefa = async (id, status) => {
   const novo = status==='concluida'?'pendente':'concluida';
   await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:novo, data_conclusao:novo==='concluida'?new Date().toISOString().split('T')[0]:null});
+  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
+  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Status de tarefa alterado', `Tarefa "${tarefaNome}" marcada como ${novo === 'concluida' ? 'concluída' : 'pendente'}.`);
   await pgDetalhe();
 };
 
 window.delTarefa = async (id) => {
+  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
+  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
   await deleteDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Tarefa excluída', `Tarefa "${tarefaNome}" foi removida.`);
   await pgDetalhe();
 };
 
 // ══ FINANCEIRO ══
 async function pgFin() {
   setPage('financeiro');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div>`;
   if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
@@ -1143,7 +1209,7 @@ window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await delete
 // ══ MATERIAIS ══
 async function pgMateriais() {
   setPage('materiais');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div><div class="page-sub">Lista de materiais por obra (BOM)</div></div>';
   if (!obras.length) {
@@ -1176,6 +1242,11 @@ window.loadMat = async (oid) => {
             'Qtd prevista: ' + (m.quantidade_prevista||'—') + ' ' + (m.unidade||'') +
             ' · Real: ' + (m.quantidade_real||0) + ' ' + (m.unidade||'') +
           '</div>' +
+          (m.responsavel_compra||m.prazo_compra ? '<div style="font-size:11px;color:#484F58;margin-top:2px;">' +
+            (m.responsavel_compra ? '👤 ' + m.responsavel_compra : '') +
+            (m.responsavel_compra && m.prazo_compra ? ' · ' : '') +
+            (m.prazo_compra ? '📅 Comprar até: ' + fmtD(m.prazo_compra) : '') +
+          '</div>' : '') +
         '</div>' +
         (m.valor_unitario ? '<div style="font-size:12px;color:#484F58;">' + fmtR(m.valor_unitario) + '/' + (m.unidade||'un') + '</div>' : '') +
         '<span class="badge ' + (BADGE_MAT[m.status]||'badge-planejamento') + '">' + (STATUS_MAT[m.status]||'Pendente') + '</span>' +
@@ -1203,6 +1274,8 @@ window.showMatForm = (oid) => {
         '<div class="form-group"><label class="form-label">Qtd real</label><input type="number" class="form-input" id="mat-qr" placeholder="0"></div>' +
         '<div class="form-group"><label class="form-label">Valor unitário (R$)</label><input type="number" class="form-input" id="mat-vl" placeholder="0,00"></div>' +
         '<div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="mat-forn" placeholder="Nome"></div>' +
+        '<div class="form-group"><label class="form-label">Responsável pela compra</label><input class="form-input" id="mat-resp" placeholder="Nome do responsável"></div>' +
+        '<div class="form-group"><label class="form-label">Prazo para compra</label><input type="date" class="form-input" id="mat-prazo"></div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
@@ -1214,6 +1287,8 @@ window.showMatForm = (oid) => {
 window.salvarMat = async (oid) => {
   const nome = document.getElementById('mat-nome').value.trim();
   if (!nome) return alert('Nome obrigatório');
+  const resp = document.getElementById('mat-resp').value.trim();
+  const prazo = document.getElementById('mat-prazo').value;
   await addDoc(sub(oid,'materiais'), {
     nome,
     unidade: document.getElementById('mat-un').value,
@@ -1221,9 +1296,14 @@ window.salvarMat = async (oid) => {
     quantidade_real: parseFloat(document.getElementById('mat-qr').value)||0,
     valor_unitario: parseFloat(document.getElementById('mat-vl').value)||null,
     fornecedor: document.getElementById('mat-forn').value,
+    responsavel_compra: resp,
+    prazo_compra: prazo,
     status: 'pendente',
     created_at: serverTimestamp()
   });
+  const obraDoc = await getDoc(obraRef(oid));
+  const obraNome = obraDoc.exists() ? obraDoc.data().nome : oid;
+  await notificarStand(oid, obraNome, 'Novo material adicionado', `Material "${nome}"${resp?' — responsável: '+resp:''}${prazo?' — prazo: '+fmtD(prazo):''} foi cadastrado.`);
   window.loadMat(oid);
 };
 
@@ -1322,7 +1402,7 @@ window.delColab = async (id) => {
 // ══ DIÁRIO DE OBRA ══
 async function pgDiario() {
   setPage('diario');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div><div class="page-sub">Registro diário por obra</div></div>';
   if (!obras.length) {
@@ -1429,7 +1509,7 @@ window.delDiario = async (oid, id) => {
 // ══ DOCUMENTOS ══
 async function pgDocumentos() {
   setPage('documentos');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div><div class="page-sub">Gestão de documentos e registro fotográfico</div></div>';
   if (!obras.length) {
@@ -1533,7 +1613,7 @@ window.delDoc = async (oid, id) => {
 // ══ OPERACIONAL ══
 async function pgOperacional() {
   setPage('operacional');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div><div class="page-sub">Inspeções de qualidade e não conformidades</div></div>';
   if (!obras.length) {
@@ -1706,7 +1786,7 @@ async function loadNotifications() {
   const notifs = [];
 
   try {
-    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+    const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
 
     for (const o of obras) {
@@ -1743,20 +1823,21 @@ async function loadNotifications() {
     }
   } catch(e) {}
 
-  // Notificações de suporte
+  // Notificações de alterações feitas pelo admin
   try {
-    const nSnap = await getDocs(query(
+    const adminSnap = await getDocs(query(
       collection(db,'notificacoes'),
       where('para','==',currentUser.email),
       where('lida','==',false)
     ));
-    nSnap.docs.forEach(d => {
+    adminSnap.docs.forEach(d => {
       const n = d.data();
+      const isAdmin = n.acao; // tem campo acao = veio do admin
       notifs.push({
-        tipo:'suporte',
-        obra: n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte',
-        texto: n.texto,
-        icon: n.tipo === 'suporte_resolvido' ? '✅' : '🎫',
+        tipo: isAdmin ? 'admin' : 'suporte',
+        obra: isAdmin ? (n.obra_nome || 'Obra') : (n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte'),
+        texto: isAdmin ? `🔧 ${n.acao}: ${n.detalhe}` : n.texto,
+        icon: isAdmin ? '👷' : (n.tipo === 'suporte_resolvido' ? '✅' : '🎫'),
         notifId: d.id
       });
     });
@@ -1794,7 +1875,7 @@ async function initBell() {
   // Load notifications count on startup
   const hoje = new Date().toISOString().split('T')[0];
   try {
-    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+    const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
     let count = 0;
     for (const o of obras) {
@@ -1829,16 +1910,15 @@ async function pgAcessos() {
     return;
   }
 
-  const [usuariosSnap, acessosSnap, obrasSnap] = await Promise.all([
+  const [usuariosSnap, obrasArr] = await Promise.all([
     getDocs(collection(db,'usuarios')),
-    Promise.resolve(null),
-    getDocs(query(obrasCol(), where('uid','==',uid())))
+    getObras()
   ]);
 
   const usuarios = usuariosSnap.docs.map(d => ({id:d.id,...d.data()}));
   const stands = usuarios.filter(u => u.perfil === 'stand');
   const starteds = usuarios.filter(u => u.perfil === 'started');
-  const obras = obrasSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const obras = obrasArr;
 
   // Load client tokens
   const acessosPromises = obras.map(o => getDocs(sub(o.id,'acessos')));
