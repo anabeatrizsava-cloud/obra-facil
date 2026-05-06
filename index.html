@@ -808,17 +808,28 @@ async function pgDetalhe() {
       <div id="et-edit-${et.id}"></div>
       <div id="tf-form-${et.id}"></div>`;
     ets.forEach(t => {
+      const concluida = t.status === 'concluida';
+      const temRegistro = concluida && (t.conclusao_descricao || (t.conclusao_fotos && t.conclusao_fotos.length));
       html += `<div class="tarefa-row">
-        <div class="tarefa-check ${t.status==='concluida'?'done':''}" onclick="window.togTarefa('${t.id}','${t.status}')">
-          ${t.status==='concluida'?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        <div class="tarefa-check ${concluida?'done':''}" onclick="window.togTarefa('${t.id}','${t.status}')">
+          ${concluida?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
         </div>
         <div style="flex:1;">
-          <div style="font-size:13px;color:${t.status==='concluida'?'#484F58':'#fff'};text-decoration:${t.status==='concluida'?'line-through':'none'};">${t.nome}</div>
-          <div style="display:flex;gap:10px;margin-top:2px;">
+          <div style="font-size:13px;color:${concluida?'#484F58':'#fff'};text-decoration:${concluida?'line-through':'none'};">${t.nome}</div>
+          <div style="display:flex;gap:10px;margin-top:2px;flex-wrap:wrap;">
             ${t.responsavel?`<span style="font-size:11px;color:#484F58;">${t.responsavel}</span>`:''}
             ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
             ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
+            ${t.data_conclusao?`<span style="font-size:11px;color:#3FB950;">concluída ${fmtD(t.data_conclusao)}</span>`:''}
           </div>
+          ${temRegistro?`<div onclick="window.togRegistro('reg-${t.id}')" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;background:#1A2820;border:0.5px solid #2E4030;border-radius:6px;padding:3px 9px;font-size:11px;color:#3FB950;cursor:pointer;">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 5h8M5 1l4 4-4 4" stroke="#3FB950" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Ver registro de conclusão
+          </div>`:''}
+          ${temRegistro?`<div id="reg-${t.id}" style="display:none;margin-top:6px;border-left:2px solid #1D9E75;padding:8px 10px;background:#0D1117;border-radius:0 6px 6px 0;">
+            ${t.conclusao_descricao?`<div style="font-size:12px;color:#8B949E;line-height:1.5;margin-bottom:6px;">${t.conclusao_descricao}</div>`:''}
+            ${t.conclusao_fotos&&t.conclusao_fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;">${t.conclusao_fotos.map(f=>`<img src="${f}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${f}','_blank')">`).join('')}</div>`:''}
+          </div>`:''}
         </div>
         <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
       </div>`;
@@ -1056,11 +1067,103 @@ window.salvarTarefa = async (etapaId) => {
 };
 
 window.togTarefa = async (id, status) => {
-  const novo = status==='concluida'?'pendente':'concluida';
-  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:novo, data_conclusao:novo==='concluida'?new Date().toISOString().split('T')[0]:null});
-  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
-  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Status de tarefa alterado', `Tarefa "${tarefaNome}" marcada como ${novo === 'concluida' ? 'concluída' : 'pendente'}.`);
+  if (status === 'concluida') {
+    // Volta para pendente direto, sem popup
+    await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:'pendente', data_conclusao:null});
+    const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
+    const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
+    await notificarStand(obraAberta.id, obraAberta.nome, 'Status de tarefa alterado', `Tarefa "${tarefaNome}" reaberta como pendente.`);
+    await pgDetalhe();
+  } else {
+    // Abre bottom sheet de conclusão
+    window.abrirConclusaoSheet(id);
+  }
+};
+
+window.togRegistro = (regId) => {
+  const el = document.getElementById(regId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.abrirConclusaoSheet = (tarefaId) => {
+  // Remove sheet anterior se existir
+  const old = document.getElementById('conclusao-sheet-overlay');
+  if (old) old.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'conclusao-sheet-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;display:flex;align-items:flex-end;';
+  overlay.innerHTML = `
+    <div style="width:100%;background:#161B22;border:0.5px solid #30363D;border-radius:16px 16px 0 0;padding:16px;max-height:85vh;overflow-y:auto;">
+      <div style="width:32px;height:3px;background:#30363D;border-radius:99px;margin:0 auto 16px;"></div>
+      <div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:4px;">Concluir tarefa</div>
+      <div id="conclusao-tarefa-nome" style="font-size:12px;color:#484F58;margin-bottom:16px;">Carregando...</div>
+      <div class="form-group">
+        <label class="form-label">Descrição da conclusão <span style="color:#484F58;">(opcional)</span></label>
+        <textarea class="form-input" id="conclusao-desc" style="height:80px;resize:none;" placeholder="Descreva como foi realizada, observações importantes..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">Fotos / arquivos <span style="color:#484F58;">(opcional)</span></label>
+        <input type="file" class="form-input" id="conclusao-files" accept="image/*" multiple style="padding:6px;">
+        <div id="conclusao-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button onclick="window.fecharConclusaoSheet()" style="flex:1;background:transparent;border:0.5px solid #30363D;border-radius:8px;padding:11px;font-size:13px;color:#8B949E;cursor:pointer;">Cancelar</button>
+        <button id="conclusao-btn-confirmar" onclick="window.confirmarConclusao('${tarefaId}')" style="flex:1;background:#1D9E75;border:none;border-radius:8px;padding:11px;font-size:13px;color:#fff;cursor:pointer;font-weight:500;">Confirmar conclusão</button>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) window.fecharConclusaoSheet(); });
+  document.body.appendChild(overlay);
+
+  // Preview de fotos
+  setTimeout(() => {
+    const inp = document.getElementById('conclusao-files');
+    const prev = document.getElementById('conclusao-preview');
+    if (inp && prev) inp.onchange = () => {
+      prev.innerHTML = '';
+      Array.from(inp.files).forEach(f => {
+        prev.innerHTML += `<img src="${URL.createObjectURL(f)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`;
+      });
+    };
+    // Busca nome da tarefa
+    getDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId)).then(d => {
+      const el = document.getElementById('conclusao-tarefa-nome');
+      if (el && d.exists()) el.textContent = d.data().nome;
+    });
+  }, 50);
+};
+
+window.fecharConclusaoSheet = () => {
+  const el = document.getElementById('conclusao-sheet-overlay');
+  if (el) el.remove();
+};
+
+window.confirmarConclusao = async (tarefaId) => {
+  const btn = document.getElementById('conclusao-btn-confirmar');
+  if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
+
+  const desc = document.getElementById('conclusao-desc')?.value.trim() || '';
+  const files = document.getElementById('conclusao-files')?.files || [];
+  const fotos = [];
+  for (const f of Array.from(files)) {
+    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
+  }
+
+  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId), {
+    status: 'concluida',
+    data_conclusao: new Date().toISOString().split('T')[0],
+    conclusao_descricao: desc,
+    conclusao_fotos: fotos,
+    conclusao_por: currentUser.email
+  });
+
+  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId));
+  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : tarefaId;
+  await notificarStand(obraAberta.id, obraAberta.nome, 'Tarefa concluída', `Tarefa "${tarefaNome}" foi concluída por ${currentUser.email}.`);
+
+  window.fecharConclusaoSheet();
   await pgDetalhe();
 };
 
