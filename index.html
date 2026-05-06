@@ -376,7 +376,15 @@ onAuthStateChanged(auth, async user => {
     }
     currentRole = roleData.role;
     currentPerms = roleData.modulos;
-    // Salva uid do usuário no Firestore para que admin possa ver obras dele
+    // Salva uid→email em coleção própria para que admin possa ver obras do stand
+    // Usa coleção user_uids (regra: allow read, write: if true) igual a finance_tasks
+    addDoc(collection(db,'user_uids'), {
+      uid: user.uid,
+      email: user.email,
+      perfil: currentRole,
+      updated_at: serverTimestamp()
+    }).catch(()=>{});
+    // Tenta também atualizar documento em usuarios (funciona se regras permitirem)
     if (roleData.docId) {
       updateDoc(doc(db,'usuarios',roleData.docId), { uid: user.uid }).catch(()=>{});
     }
@@ -438,8 +446,16 @@ async function getObras() {
   const snapOwn = await getDocs(query(obrasCol(), where('uid','==',uid())));
   let obras = snapOwn.docs.map(d => ({id:d.id,...d.data()}));
   if (currentRole === 'admin') {
+    // Busca UIDs dos stands — tenta coleção usuarios primeiro, depois user_uids como fallback
+    const standUids = new Set();
+
     const standsSnap = await getDocs(query(collection(db,'usuarios'), where('perfil','==','stand')));
-    const standUids = standsSnap.docs.map(d => d.data().uid).filter(Boolean);
+    standsSnap.docs.forEach(d => { if (d.data().uid) standUids.add(d.data().uid); });
+
+    // Fallback: user_uids (gravado pelo próprio stand no login, regra if true)
+    const uidsSnap = await getDocs(query(collection(db,'user_uids'), where('perfil','==','stand')));
+    uidsSnap.docs.forEach(d => { if (d.data().uid) standUids.add(d.data().uid); });
+
     for (const sUid of standUids) {
       const sSnap = await getDocs(query(obrasCol(), where('uid','==',sUid)));
       sSnap.docs.forEach(d => {
