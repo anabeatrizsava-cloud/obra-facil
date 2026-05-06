@@ -1277,9 +1277,20 @@ window.loadMat = async (oid) => {
     '<div id="mat-list">' + list + '</div>';
 };
 
-window.showMatForm = (oid) => {
+window.showMatForm = async (oid) => {
   const UNIDADES = ['un','m²','m³','m','kg','L','saco','cx','rolo'];
   let opts = UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
+
+  // Busca usuários cadastrados no sistema
+  let userOpts = '<option value="">— Nenhum —</option>';
+  try {
+    const usersSnap = await getDocs(collection(db,'usuarios'));
+    usersSnap.docs.forEach(d => {
+      const u = d.data();
+      if (u.email) userOpts += `<option value="${u.email}">${u.email}</option>`;
+    });
+  } catch(e) {}
+
   document.getElementById('mat-form').innerHTML =
     '<div class="form-wrap" style="margin-bottom:14px;">' +
       '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo material</span><button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button></div>' +
@@ -1290,8 +1301,8 @@ window.showMatForm = (oid) => {
         '<div class="form-group"><label class="form-label">Qtd real</label><input type="number" class="form-input" id="mat-qr" placeholder="0"></div>' +
         '<div class="form-group"><label class="form-label">Valor unitário (R$)</label><input type="number" class="form-input" id="mat-vl" placeholder="0,00"></div>' +
         '<div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="mat-forn" placeholder="Nome"></div>' +
-        '<div class="form-group"><label class="form-label">Responsável pela compra</label><input class="form-input" id="mat-resp" placeholder="Nome do responsável"></div>' +
-        '<div class="form-group"><label class="form-label">Prazo para compra</label><input type="date" class="form-input" id="mat-prazo"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Responsável pela compra</label><select class="form-input" id="mat-resp">' + userOpts + '</select></div>' +
+        '<div class="form-group form-full"><label class="form-label">Prazo para compra</label><input type="date" class="form-input" id="mat-prazo"></div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
@@ -1313,20 +1324,55 @@ window.salvarMat = async (oid) => {
     valor_unitario: parseFloat(document.getElementById('mat-vl').value)||null,
     fornecedor: document.getElementById('mat-forn').value,
     responsavel_compra: resp,
+    responsavel_email: resp, // email para notificação
     prazo_compra: prazo,
     status: 'pendente',
     created_at: serverTimestamp()
   });
   const obraDoc = await getDoc(obraRef(oid));
   const obraNome = obraDoc.exists() ? obraDoc.data().nome : oid;
+  // Notifica stand se admin editou obra alheia
   await notificarStand(oid, obraNome, 'Novo material adicionado', `Material "${nome}"${resp?' — responsável: '+resp:''}${prazo?' — prazo: '+fmtD(prazo):''} foi cadastrado.`);
+  // Notifica responsável pela compra
+  if (resp && resp !== currentUser.email) {
+    await addDoc(collection(db,'notificacoes'), {
+      para: resp,
+      de: currentUser.email,
+      obra_id: oid,
+      obra_nome: obraNome,
+      acao: 'Responsável pela compra',
+      detalhe: `Você foi designado para comprar "${nome}"${prazo ? ' — prazo: ' + fmtD(prazo) : ''}.`,
+      lida: false,
+      created_at: serverTimestamp()
+    });
+  }
   window.loadMat(oid);
 };
 
 window.togMat = async (oid, id, status) => {
   const seq = ['pendente','comprado','entregue'];
   const next = seq[(seq.indexOf(status)+1) % seq.length];
+  const STATUS_LABEL = {pendente:'Pendente', comprado:'Comprado', entregue:'Entregue'};
   await updateDoc(doc(db,'obras',oid,'materiais',id), {status: next});
+  // Notifica responsável sobre mudança de status
+  const matDoc = await getDoc(doc(db,'obras',oid,'materiais',id));
+  if (matDoc.exists()) {
+    const m = matDoc.data();
+    const obraDoc = await getDoc(obraRef(oid));
+    const obraNome = obraDoc.exists() ? obraDoc.data().nome : oid;
+    if (m.responsavel_email && m.responsavel_email !== currentUser.email) {
+      await addDoc(collection(db,'notificacoes'), {
+        para: m.responsavel_email,
+        de: currentUser.email,
+        obra_id: oid,
+        obra_nome: obraNome,
+        acao: 'Status de compra atualizado',
+        detalhe: `Material "${m.nome}" avançou para: ${STATUS_LABEL[next]}.`,
+        lida: false,
+        created_at: serverTimestamp()
+      });
+    }
+  }
   window.loadMat(oid);
 };
 
