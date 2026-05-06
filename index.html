@@ -1896,12 +1896,13 @@ async function loadNotifications() {
     ));
     adminSnap.docs.forEach(d => {
       const n = d.data();
-      const isAdmin = n.acao; // tem campo acao = veio do admin
+      const isAtu = n.tipo === 'atualizacao_sistema';
+      const isAdminAction = n.acao && !isAtu;
       notifs.push({
-        tipo: isAdmin ? 'admin' : 'suporte',
-        obra: isAdmin ? (n.obra_nome || 'Obra') : (n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte'),
-        texto: isAdmin ? `🔧 ${n.acao}: ${n.detalhe}` : n.texto,
-        icon: isAdmin ? '👷' : (n.tipo === 'suporte_resolvido' ? '✅' : '🎫'),
+        tipo: isAtu ? 'atualizacao' : (isAdminAction ? 'admin' : 'suporte'),
+        obra: isAtu ? 'Atualização do sistema' : (isAdminAction ? (n.obra_nome || 'Obra') : (n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte')),
+        texto: isAtu ? `🆕 ${n.titulo}` : (isAdminAction ? `🔧 ${n.acao}: ${n.detalhe}` : n.texto),
+        icon: isAtu ? '📢' : (isAdminAction ? '👷' : (n.tipo === 'suporte_resolvido' ? '✅' : '🎫')),
         notifId: d.id
       });
     });
@@ -2193,17 +2194,30 @@ async function pgSuporte() {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
 
-  // Load tickets
+  // Carrega atualizações do sistema e tickets em paralelo
   let q;
-  if (isAdmin) {
-    q = query(suporteCol(), orderBy('created_at', 'desc'));
-  } else {
-    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
-  }
+  if (isAdmin) q = query(suporteCol(), orderBy('created_at', 'desc'));
+  else q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
 
-  const snap = await getDocs(q);
+  const [snap, atuSnap] = await Promise.all([
+    getDocs(q),
+    getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')))
+  ]);
+
   const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
   const abertas = tickets.filter(t => t.status !== 'resolvida').length;
+
+  const ATU_TIPO_BADGE = {
+    funcionalidade: 'background:#0F6E56;color:#9FE1CB',
+    correcao: 'background:#3C3489;color:#CECBF6',
+    informativo: 'background:#30363D;color:#8B949E'
+  };
+  const ATU_TIPO_LABEL = {
+    funcionalidade: 'Nova funcionalidade',
+    correcao: 'Correção',
+    informativo: 'Informativo'
+  };
 
   let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
     '<div><div class="page-title">Suporte</div><div class="page-sub">' +
@@ -2212,6 +2226,76 @@ async function pgSuporte() {
     (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
   '</div>';
 
+  // ── BLOCO ADMIN: publicar atualização ──
+  if (isAdmin) {
+    html += '<div class="card" style="margin-bottom:20px;border-color:#1D9E75;">' +
+      '<div style="font-size:13px;font-weight:500;color:#9FE1CB;margin-bottom:12px;">Publicar atualização do sistema</div>' +
+      '<div id="atu-form-wrap">' +
+        '<div class="form-grid">' +
+          '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="atu-titulo" placeholder="Ex: v1.3 — Nova funcionalidade Gantt"></div>' +
+          '<div class="form-group"><label class="form-label">Tipo</label>' +
+            '<select class="form-input" id="atu-tipo">' +
+              '<option value="funcionalidade">Nova funcionalidade</option>' +
+              '<option value="correcao">Correção</option>' +
+              '<option value="informativo">Informativo</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" id="atu-desc" style="height:80px;resize:none;" placeholder="Descreva o que mudou..."></textarea></div>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button class="btn-primary" onclick="window.publicarAtualizacao()">Publicar para todos os usuários</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── BLOCO USUÁRIO: notificações de atualização não lidas ──
+  if (!isAdmin) {
+    const nSnap = await getDocs(query(
+      collection(db,'notificacoes'),
+      where('para','==',currentUser.email),
+      where('tipo','==','atualizacao_sistema'),
+      where('lida','==',false)
+    ));
+    const naoLidas = nSnap.docs.map(d => ({id:d.id,...d.data()}));
+    if (naoLidas.length) {
+      html += '<div class="card" style="margin-bottom:16px;border-color:#1D9E75;">' +
+        '<div style="font-size:12px;font-weight:500;color:#9FE1CB;margin-bottom:8px;">' + naoLidas.length + ' atualização' + (naoLidas.length>1?'s':'') + ' não lida' + (naoLidas.length>1?'s':'') + '</div>';
+      naoLidas.forEach(n => {
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;flex-shrink:0;margin-top:4px;"></div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;color:#fff;">' + n.titulo + '</div>' +
+            '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + (ATU_TIPO_LABEL[n.atu_tipo]||'') + '</div>' +
+          '</div>' +
+          '<button onclick="window.marcarLida(\'' + n.id + '\')" style="background:#21262D;border:0.5px solid #30363D;border-radius:6px;padding:4px 10px;font-size:11px;color:#8B949E;cursor:pointer;flex-shrink:0;">Marcar lida</button>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+  }
+
+  // ── HISTÓRICO DE ATUALIZAÇÕES (admin + usuários) ──
+  if (atualizacoes.length) {
+    html += '<div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:12px;">Histórico de atualizações</div>';
+    atualizacoes.forEach(a => {
+      const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+      html += '<div class="card" style="margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">' +
+          '<div>' +
+            '<span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;margin-bottom:4px;' + (ATU_TIPO_BADGE[a.tipo]||ATU_TIPO_BADGE.informativo) + '">' + (ATU_TIPO_LABEL[a.tipo]||a.tipo) + '</span>' +
+            '<div style="font-size:13px;font-weight:500;color:#fff;">' + a.titulo + '</div>' +
+          '</div>' +
+          '<span style="font-size:11px;color:#484F58;flex-shrink:0;">' + dataFmt + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#8B949E;line-height:1.5;">' + a.descricao + '</div>' +
+        (isAdmin ? '<div style="margin-top:8px;text-align:right;"><button onclick="window.delAtualizacao(\'' + a.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:11px;cursor:pointer;">Excluir</button></div>' : '') +
+      '</div>';
+    });
+    html += '<div style="margin-bottom:20px;"></div>';
+  }
+
+  // ── DIVIDER tickets ──
   if (isAdmin && abertas > 0) {
     html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
       '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
@@ -2255,6 +2339,47 @@ async function pgSuporte() {
 
   document.getElementById('content').innerHTML = html;
 }
+
+window.publicarAtualizacao = async () => {
+  const titulo = document.getElementById('atu-titulo').value.trim();
+  const desc = document.getElementById('atu-desc').value.trim();
+  if (!titulo) return alert('Título obrigatório');
+  if (!desc) return alert('Descrição obrigatória');
+  const tipo = document.getElementById('atu-tipo').value;
+
+  // Grava a atualização
+  await addDoc(collection(db,'atualizacoes_sistema'), {
+    titulo, descricao: desc, tipo,
+    criado_por: currentUser.email,
+    created_at: serverTimestamp()
+  });
+
+  // Notifica todos os usuários cadastrados (stands + starteds)
+  const usersSnap = await getDocs(collection(db,'usuarios'));
+  const notifPromises = usersSnap.docs.map(d => {
+    const email = d.data().email;
+    if (!email) return Promise.resolve();
+    return addDoc(collection(db,'notificacoes'), {
+      para: email,
+      de: currentUser.email,
+      tipo: 'atualizacao_sistema',
+      atu_tipo: tipo,
+      titulo,
+      detalhe: desc,
+      lida: false,
+      created_at: serverTimestamp()
+    });
+  });
+  await Promise.all(notifPromises);
+
+  await pgSuporte();
+};
+
+window.delAtualizacao = async (id) => {
+  if (!confirm('Excluir esta atualização?')) return;
+  await deleteDoc(doc(db,'atualizacoes_sistema',id));
+  await pgSuporte();
+};
 
 window.showTicketForm = () => {
   document.getElementById('ticket-form-wrap').innerHTML =
