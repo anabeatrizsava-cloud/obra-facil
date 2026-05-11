@@ -2584,15 +2584,24 @@ async function pgSuporte(aba) {
   // Carregar tickets + atualizações em paralelo
   let q = isAdmin
     ? query(suporteCol(), orderBy('created_at','desc'))
-    : query(suporteCol(), where('user_email','==',currentUser.email), orderBy('created_at','desc'));
+    : query(suporteCol(), where('user_email','==',currentUser.email)); // sem orderBy — evita erro de índice composto
 
-  const [ticketSnap, atuSnap] = await Promise.all([
-    getDocs(q),
-    getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')))
-  ]);
-
-  const tickets = ticketSnap.docs.map(d => ({id:d.id,...d.data()}));
-  const atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  // Carregar separado para isolar erros — compound query em suporte requer índice Firestore
+  let tickets = [], atualizacoes = [];
+  try {
+    const ticketSnap = await getDocs(q);
+    tickets = ticketSnap.docs.map(d => ({id:d.id,...d.data()}));
+    // Ordenar client-side para evitar erro de índice composto (where + orderBy)
+    if (!isAdmin) tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
+  } catch(e) {
+    console.warn('Suporte tickets:', e.message);
+  }
+  try {
+    const atuSnap = await getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')));
+    atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    console.warn('Atualizações:', e.message);
+  }
   const pendentes = tickets.filter(t => t.status !== 'resolvida').length;
 
   // ── HEADER ──
