@@ -426,22 +426,27 @@ async function checkClientToken() {
 
     // Carregar dados da obra em paralelo
     const obraId = obraData.id;
-    const [etSnap, finSnap, contSnap, dirSnap, docSnap] = await Promise.all([
+    const [etSnap, finSnap, contSnap, dirSnap, docSnap, tarSnap] = await Promise.all([
       getDocs(query(collection(db,'obras',obraId,'etapas'), orderBy('ordem','asc'))),
       getDocs(collection(db,'obras',obraId,'orcamentos')),
       getDocs(collection(db,'obras',obraId,'contas')),
       getDocs(query(collection(db,'obras',obraId,'diario'), orderBy('data','desc'))),
-      getDocs(collection(db,'obras',obraId,'documentos'))
+      getDocs(collection(db,'obras',obraId,'documentos')),
+      getDocs(collection(db,'obras',obraId,'tarefas'))
     ]);
 
     const etapas = etSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const tarefas = tarSnap.docs.map(d=>({id:d.id,...d.data()}));
     const orcamentos = finSnap.docs.map(d=>({id:d.id,...d.data()}));
     const contas = contSnap.docs.map(d=>({id:d.id,...d.data()}));
     const diario = dirSnap.docs.map(d=>({id:d.id,...d.data()})).slice(0,3);
     const docs = docSnap.docs.map(d=>({id:d.id,...d.data()}));
 
     // Cálculos
-    const progresso = etapas.length ? Math.round(etapas.filter(e=>e.status==='concluida').length / etapas.length * 100) : 0;
+    // Progresso baseado em tarefas (igual ao app)
+    const totTarefas = tarefas.length;
+    const feitasTarefas = tarefas.filter(t=>t.status==='concluida').length;
+    const progresso = totTarefas ? Math.round(feitasTarefas / totTarefas * 100) : (etapas.length ? Math.round(etapas.filter(e=>e.status==='concluida').length / etapas.length * 100) : 0);
     const totOrc = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
     const contasCliente = contas.filter(c=>c.tipo==='receber');
     const totRec = contasCliente.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
@@ -460,16 +465,24 @@ async function checkClientToken() {
     let etapasHtml = '';
     if (etapas.length) {
       etapas.forEach(e => {
-        const tarefas = e.tarefas_total || 0;
-        const feitas = e.tarefas_feitas || 0;
-        const pct = tarefas ? Math.round(feitas/tarefas*100) : (e.status==='concluida'?100:0);
+        const etaTarefas = tarefas.filter(t=>t.etapa_id===e.id);
+        const feitas = etaTarefas.filter(t=>t.status==='concluida').length;
+        const pct = etaTarefas.length ? Math.round(feitas/etaTarefas.length*100) : (e.status==='concluida'?100:0);
+        // Derivar status visual das tarefas
+        let statusVisual = e.status || 'pendente';
+        if (etaTarefas.length) {
+          if (feitas === etaTarefas.length) statusVisual = 'concluida';
+          else if (feitas > 0) statusVisual = 'andamento';
+          else statusVisual = 'pendente';
+        }
         etapasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
-          '<div style="width:8px;height:8px;border-radius:50%;background:' + (ETAPA_DOT[e.status]||'#30363D') + ';flex-shrink:0;"></div>' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:' + (ETAPA_DOT[statusVisual]||'#30363D') + ';flex-shrink:0;"></div>' +
           '<div style="flex:1;min-width:0;">' +
             '<p style="font-size:13px;color:#fff;margin:0;">' + e.nome + '</p>' +
-            (e.status==='andamento' ? '<div style="height:4px;background:#21262D;border-radius:2px;margin-top:4px;max-width:180px;"><div style="height:100%;width:'+pct+'%;background:#1D9E75;border-radius:2px;"></div></div>' : '') +
+            (etaTarefas.length ? '<p style="font-size:11px;color:#484F58;margin:2px 0 0;">'+feitas+' de '+etaTarefas.length+' tarefas concluídas</p>' : '') +
+            (statusVisual==='andamento' ? '<div style="height:4px;background:#21262D;border-radius:2px;margin-top:4px;max-width:180px;"><div style="height:100%;width:'+pct+'%;background:#1D9E75;border-radius:2px;"></div></div>' : '') +
           '</div>' +
-          '<span style="font-size:10px;padding:2px 7px;border-radius:999px;'+( STATUS_COR[e.status]||'background:#1C2333;color:#8B949E') + ';">' + (STATUS_PT[e.status]||e.status) + '</span>' +
+          '<span style="font-size:10px;padding:2px 7px;border-radius:999px;'+(STATUS_COR[statusVisual]||'background:#1C2333;color:#8B949E')+';">' + (STATUS_PT[statusVisual]||statusVisual) + '</span>' +
         '</div>';
       });
     } else {
