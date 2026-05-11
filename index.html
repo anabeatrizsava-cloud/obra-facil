@@ -383,6 +383,235 @@ async function getUserRole(email) {
   return null;
 }
 
+async function checkClientToken() {
+  const token = new URLSearchParams(window.location.search).get('token');
+  if (!token) return;
+
+  // Esconder telas do app
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-layout').style.display = 'none';
+
+  // Criar tela do portal
+  let portalEl = document.getElementById('portal-cliente');
+  if (!portalEl) {
+    portalEl = document.createElement('div');
+    portalEl.id = 'portal-cliente';
+    portalEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0D1117;color:#fff;overflow-y:auto;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+    document.getElementById('app').appendChild(portalEl);
+  }
+  portalEl.innerHTML = '<div style="padding:20px;text-align:center;color:#484F58;font-size:14px;">Carregando...</div>';
+
+  // Buscar token em todas as obras
+  try {
+    const obrasSnap = await getDocs(collection(db,'obras'));
+    let acessoData = null, obraData = null;
+
+    for (const obraDoc of obrasSnap.docs) {
+      const aSnap = await getDocs(query(collection(db,'obras',obraDoc.id,'acessos'), where('token','==',token)));
+      if (!aSnap.empty) {
+        acessoData = {id:aSnap.docs[0].id,...aSnap.docs[0].data()};
+        obraData = {id:obraDoc.id,...obraDoc.data()};
+        break;
+      }
+    }
+
+    if (!acessoData || !obraData) {
+      portalEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;"><p style="color:#9A4A53;font-size:16px;">Link inválido ou expirado</p><p style="color:#484F58;font-size:13px;">Entre em contato com o responsável pela obra.</p></div>';
+      return;
+    }
+    if (acessoData.ativo === false) {
+      portalEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;"><p style="color:#8C603E;font-size:16px;">Acesso desativado</p><p style="color:#484F58;font-size:13px;">Entre em contato com o responsável pela obra.</p></div>';
+      return;
+    }
+
+    // Carregar dados da obra em paralelo
+    const obraId = obraData.id;
+    const [etSnap, finSnap, contSnap, dirSnap, docSnap] = await Promise.all([
+      getDocs(query(collection(db,'obras',obraId,'etapas'), orderBy('ordem','asc'))),
+      getDocs(collection(db,'obras',obraId,'orcamentos')),
+      getDocs(collection(db,'obras',obraId,'contas')),
+      getDocs(query(collection(db,'obras',obraId,'diario'), orderBy('data','desc'))),
+      getDocs(collection(db,'obras',obraId,'documentos'))
+    ]);
+
+    const etapas = etSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const orcamentos = finSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const contas = contSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const diario = dirSnap.docs.map(d=>({id:d.id,...d.data()})).slice(0,3);
+    const docs = docSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // Cálculos
+    const progresso = etapas.length ? Math.round(etapas.filter(e=>e.status==='concluida').length / etapas.length * 100) : 0;
+    const totOrc = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+    const contasCliente = contas.filter(c=>c.tipo==='receber');
+    const totRec = contasCliente.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const totRecebido = contasCliente.filter(c=>c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const proxVenc = contasCliente
+      .filter(c=>c.status!=='recebido'&&c.data_vencimento)
+      .sort((a,b)=>new Date(a.data_vencimento)-new Date(b.data_vencimento))[0];
+
+    const STATUS_PT = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
+    const STATUS_COR = {planejamento:'background:#1C2333;color:#8B949E',andamento:'background:#1A2820;color:#3FB950',pausada:'background:#2A1C0A;color:#8C603E',concluida:'background:#1A2820;color:#3FB950'};
+    const ETAPA_DOT = {planejamento:'#30363D',andamento:'#1D9E75',concluida:'#3FB950',pausada:'#8C603E'};
+    const TIPOS_DOC = {planta:'Planta',contrato:'Contrato',laudo:'Laudo',foto:'Foto',outro:'Outro'};
+
+    // Barra de progresso das etapas
+    let etapasHtml = '';
+    if (etapas.length) {
+      etapas.forEach(e => {
+        const tarefas = e.tarefas_total || 0;
+        const feitas = e.tarefas_feitas || 0;
+        const pct = tarefas ? Math.round(feitas/tarefas*100) : (e.status==='concluida'?100:0);
+        etapasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:' + (ETAPA_DOT[e.status]||'#30363D') + ';flex-shrink:0;"></div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<p style="font-size:13px;color:#fff;margin:0;">' + e.nome + '</p>' +
+            (e.status==='andamento' ? '<div style="height:4px;background:#21262D;border-radius:2px;margin-top:4px;max-width:180px;"><div style="height:100%;width:'+pct+'%;background:#1D9E75;border-radius:2px;"></div></div>' : '') +
+          '</div>' +
+          '<span style="font-size:10px;padding:2px 7px;border-radius:999px;'+( STATUS_COR[e.status]||'background:#1C2333;color:#8B949E') + ';">' + (STATUS_PT[e.status]||e.status) + '</span>' +
+        '</div>';
+      });
+    } else {
+      etapasHtml = '<p style="font-size:13px;color:#484F58;padding:8px 0;">Nenhuma etapa cadastrada</p>';
+    }
+
+    // Contas do cliente (a receber = parcelas dele)
+    let contasHtml = '';
+    if (contasCliente.length) {
+      contasCliente.sort((a,b)=>{
+        const da = a.data_vencimento ? new Date(a.data_vencimento) : new Date('9999');
+        const db2 = b.data_vencimento ? new Date(b.data_vencimento) : new Date('9999');
+        return da-db2;
+      }).forEach(c => {
+        const pago = c.status==='recebido';
+        const venc = c.data_vencimento ? new Date(c.data_vencimento+'T00:00:00') : null;
+        const diff = venc ? Math.round((venc-hoje)/(1000*60*60*24)) : null;
+        let vencLabel = '', vencCor = '#484F58';
+        if (pago) { vencLabel = 'Pago'; vencCor = '#3FB950'; }
+        else if (venc) {
+          if (diff < 0) { vencLabel = 'Vencida há '+Math.abs(diff)+'d'; vencCor = '#9A4A53'; }
+          else if (diff === 0) { vencLabel = 'Vence hoje'; vencCor = '#8C603E'; }
+          else { vencLabel = 'Vence ' + fmtD(c.data_vencimento); vencCor = diff<=7?'#8C603E':'#484F58'; }
+        }
+        contasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;' + (pago?'opacity:0.55;':'') + '">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<p style="font-size:13px;color:#fff;margin:0;">' + c.descricao + '</p>' +
+            (vencLabel ? '<p style="font-size:11px;color:'+vencCor+';margin:2px 0 0;">'+vencLabel+'</p>' : '') +
+          '</div>' +
+          '<p style="font-size:14px;font-weight:500;color:#fff;margin:0;flex-shrink:0;">' + fmtR(c.valor) + '</p>' +
+          (pago ? '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1A2820;color:#3FB950;">Pago</span>' : '') +
+        '</div>';
+      });
+    } else {
+      contasHtml = '<p style="font-size:13px;color:#484F58;padding:8px 0;">Nenhum lançamento financeiro</p>';
+    }
+
+    // Diário
+    let diarioHtml = '';
+    if (diario.length) {
+      diario.forEach(r => {
+        diarioHtml += '<div style="padding:10px 0;border-bottom:0.5px solid #21262D;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+            '<span style="font-size:13px;font-weight:500;color:#fff;">' + fmtD(r.data) + '</span>' +
+            (r.clima ? '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1C2333;color:#8B949E;">'+r.clima+'</span>' : '') +
+          '</div>' +
+          (r.descricao ? '<p style="font-size:12px;color:#8B949E;margin:0 0 6px;line-height:1.5;">' + r.descricao + '</p>' : '') +
+          (r.ocorrencias ? '<p style="font-size:12px;color:#FAC775;background:#3D3000;border-radius:6px;padding:6px 10px;margin:0 0 6px;">! ' + r.ocorrencias + '</p>' : '') +
+          (r.fotos && r.fotos.length ? '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + r.fotos.map(f=>'<img src="'+f+'" style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(\''+f+'\',\'_blank\')">').join('') + '</div>' : '') +
+        '</div>';
+      });
+    } else {
+      diarioHtml = '<p style="font-size:13px;color:#484F58;padding:8px 0;">Nenhum registro ainda</p>';
+    }
+
+    // Documentos
+    let docsHtml = '';
+    if (docs.length) {
+      docs.forEach(d => {
+        docsHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
+          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="#8B949E" stroke-width="1.2"/><line x1="5.5" y1="6" x2="10.5" y2="6" stroke="#8B949E" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="8.5" x2="10.5" y2="8.5" stroke="#8B949E" stroke-width="1.2" stroke-linecap="round"/></svg>' +
+          '<p style="font-size:13px;color:#fff;margin:0;flex:1;">' + d.nome + '</p>' +
+          '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1C2333;color:#8B949E;">' + (TIPOS_DOC[d.tipo]||d.tipo||'—') + '</span>' +
+          (d.url ? '<a href="'+d.url+'" target="_blank" style="font-size:11px;color:#484F58;text-decoration:none;">Abrir →</a>' : '') +
+        '</div>';
+      });
+    } else {
+      docsHtml = '<p style="font-size:13px;color:#484F58;padding:8px 0;">Nenhum documento compartilhado</p>';
+    }
+
+    // Render portal
+    portalEl.innerHTML =
+      // Topbar
+      '<div style="background:#161B22;border-bottom:0.5px solid #21262D;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:24px;height:24px;border-radius:6px;background:#0D1117;border:0.5px solid #30363D;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="6" width="12" height="7" rx="1.5" stroke="#8B949E" stroke-width="1.2"/><polyline points="1,6 7,2 13,6" stroke="#8B949E" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg></div>' +
+          '<span style="font-size:14px;font-weight:500;color:#fff;">ObraFácil</span>' +
+        '</div>' +
+        '<span style="font-size:12px;color:#484F58;">Portal do cliente</span>' +
+      '</div>' +
+
+      // Content
+      '<div style="padding:20px;max-width:720px;margin:0 auto;">' +
+
+        // Header obra
+        '<div style="margin-bottom:18px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">' +
+            '<p style="font-size:18px;font-weight:500;color:#fff;margin:0;">' + obraData.nome + '</p>' +
+            '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_COR[obraData.status]||'background:#1C2333;color:#8B949E') + ';">' + (STATUS_PT[obraData.status]||obraData.status||'—') + '</span>' +
+          '</div>' +
+          '<p style="font-size:12px;color:#484F58;margin:0;">Olá, ' + acessoData.nome_cliente + (obraData.data_prevista_fim ? ' · Previsão de conclusão: ' + fmtD(obraData.data_prevista_fim) : '') + '</p>' +
+        '</div>' +
+
+        // Stat cards
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">' +
+          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;">' +
+            '<p style="font-size:11px;color:#484F58;margin:0 0 4px;">Progresso geral</p>' +
+            '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + progresso + '%</p>' +
+            '<div style="height:5px;background:#21262D;border-radius:3px;margin-top:6px;"><div style="height:100%;width:'+progresso+'%;background:#1D9E75;border-radius:3px;"></div></div>' +
+          '</div>' +
+          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;">' +
+            '<p style="font-size:11px;color:#484F58;margin:0 0 4px;">Valor orçado</p>' +
+            '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + fmtR(totOrc) + '</p>' +
+          '</div>' +
+          '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;">' +
+            '<p style="font-size:11px;color:#484F58;margin:0 0 4px;">Seu saldo</p>' +
+            '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + fmtR(totRec - totRecebido) + '</p>' +
+            (proxVenc ? '<p style="font-size:11px;color:#8C603E;margin:4px 0 0;">Próx: ' + fmtD(proxVenc.data_vencimento) + '</p>' : '') +
+          '</div>' +
+        '</div>' +
+
+        // Etapas
+        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:12px;">' +
+          '<p style="font-size:13px;font-weight:500;color:#fff;margin:0 0 6px;">Etapas da obra</p>' +
+          etapasHtml +
+        '</div>' +
+
+        // Financeiro
+        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:12px;">' +
+          '<p style="font-size:13px;font-weight:500;color:#fff;margin:0 0 6px;">Financeiro</p>' +
+          contasHtml +
+        '</div>' +
+
+        // Diário
+        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:12px;">' +
+          '<p style="font-size:13px;font-weight:500;color:#fff;margin:0 0 6px;">Diário de obra</p>' +
+          diarioHtml +
+        '</div>' +
+
+        // Documentos
+        '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:14px 16px;margin-bottom:20px;">' +
+          '<p style="font-size:13px;font-weight:500;color:#fff;margin:0 0 6px;">Documentos</p>' +
+          docsHtml +
+        '</div>' +
+
+      '</div>';
+
+  } catch(e) {
+    portalEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;"><p style="color:#9A4A53;font-size:16px;">Erro ao carregar</p><p style="color:#484F58;font-size:13px;">' + e.message + '</p></div>';
+  }
+}
+
 onAuthStateChanged(auth, async user => {
   currentUser = user;
   const params = new URLSearchParams(window.location.search);
@@ -2138,6 +2367,69 @@ async function pgAcessos() {
 
   document.getElementById('content').innerHTML = html;
 }
+window.showAcessoForm = () => {
+  const wrap = document.getElementById('acesso-form-wrap');
+  if (!wrap) return;
+  // Buscar obras para o select
+  const obrasSnap = document.querySelectorAll ? null : null;
+  // Reutilizar obras já no DOM via select de obras — reconstruir do Firestore
+  (async () => {
+    const snap = await getDocs(query(obrasCol()));
+    const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
+    const opts = obras.map(o => '<option value="' + o.id + '">' + o.nome + '</option>').join('');
+    wrap.innerHTML =
+      '<div class="form-wrap" style="margin-bottom:16px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+          '<span style="font-size:14px;font-weight:500;color:#fff;">Novo convite — portal do cliente</span>' +
+          '<button class="btn-close" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">×</button>' +
+        '</div>' +
+        '<div class="form-grid">' +
+          '<div class="form-group"><label class="form-label">Obra *</label><select class="form-input" id="ac-obra">' + opts + '</select></div>' +
+          '<div class="form-group"><label class="form-label">Nome do cliente *</label><input class="form-input" id="ac-nome" placeholder="Ex: Maria Silva"></div>' +
+          '<div class="form-group"><label class="form-label">E-mail do cliente</label><input class="form-input" id="ac-email" placeholder="cliente@email.com"></div>' +
+          '<div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="ac-tel" placeholder="(11) 99999-9999"></div>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button class="btn-secondary" onclick="document.getElementById(\'acesso-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+          '<button class="btn-primary" onclick="window.salvarAcesso()">Gerar link</button>' +
+        '</div>' +
+      '</div>';
+  })();
+};
+
+window.salvarAcesso = async () => {
+  const obraId = document.getElementById('ac-obra').value;
+  const nome = document.getElementById('ac-nome').value.trim();
+  if (!obraId) return alert('Selecione uma obra');
+  if (!nome) return alert('Nome do cliente obrigatório');
+  const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  await addDoc(sub(obraId,'acessos'), {
+    nome_cliente: nome,
+    email_cliente: document.getElementById('ac-email').value.trim(),
+    telefone: document.getElementById('ac-tel').value.trim(),
+    token, ativo: true,
+    created_at: serverTimestamp()
+  });
+  await pgAcessos();
+};
+
+window.togAcesso = async (obraId, id, ativo) => {
+  await updateDoc(doc(db,'obras',obraId,'acessos',id), {ativo: ativo==='true' ? false : true});
+  await pgAcessos();
+};
+
+window.delAcesso = async (obraId, id) => {
+  if (!confirm('Excluir este convite?')) return;
+  await deleteDoc(doc(db,'obras',obraId,'acessos',id));
+  await pgAcessos();
+};
+
+window.copiarLink = (link) => {
+  navigator.clipboard.writeText(link).then(() => alert('Link copiado!')).catch(() => {
+    prompt('Copie o link:', link);
+  });
+};
+
 
 window.showUsuarioForm = (perfil) => {
   const wrapId = perfil === 'stand' ? 'stand-form-wrap' : 'started-form-wrap';
