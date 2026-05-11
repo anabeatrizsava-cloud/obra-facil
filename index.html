@@ -448,12 +448,14 @@ async function checkClientToken() {
     const feitasTarefas = tarefas.filter(t=>t.status==='concluida').length;
     const progresso = totTarefas ? Math.round(feitasTarefas / totTarefas * 100) : (etapas.length ? Math.round(etapas.filter(e=>e.status==='concluida').length / etapas.length * 100) : 0);
     const totOrc = orcamentos.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
-    const contasCliente = contas.filter(c=>c.tipo==='receber');
-    const totRec = contasCliente.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-    const totRecebido = contasCliente.filter(c=>c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const contasCliente = contas; // portal mostra todas as contas da obra
+    const totRec = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const totRecebido = contas.filter(c=>c.tipo==='receber'&&c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const totPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const totPago = contas.filter(c=>c.tipo==='pagar'&&(c.status==='pago'||c.status==='recebido')).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
     const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const proxVenc = contasCliente
-      .filter(c=>c.status!=='recebido'&&c.data_vencimento)
+    const proxVenc = contas
+      .filter(c=>c.status!=='pago'&&c.status!=='recebido'&&c.data_vencimento)
       .sort((a,b)=>new Date(a.data_vencimento)-new Date(b.data_vencimento))[0];
 
     const STATUS_PT = {planejamento:'Planejamento',andamento:'Em andamento',pausada:'Pausada',concluida:'Concluída'};
@@ -507,13 +509,19 @@ async function checkClientToken() {
           else if (diff === 0) { vencLabel = 'Vence hoje'; vencCor = '#8C603E'; }
           else { vencLabel = 'Vence ' + fmtD(c.data_vencimento); vencCor = diff<=7?'#8C603E':'#484F58'; }
         }
+        const tipoBg = c.tipo==='pagar' ? 'background:#2A1014;color:#9A4A53' : 'background:#1C2333;color:#8B949E';
+        const tipoLabel = c.tipo==='pagar' ? 'Pagar' : 'Receber';
         contasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;' + (pago?'opacity:0.55;':'') + '">' +
           '<div style="flex:1;min-width:0;">' +
-            '<p style="font-size:13px;color:#fff;margin:0;">' + c.descricao + '</p>' +
-            (vencLabel ? '<p style="font-size:11px;color:'+vencCor+';margin:2px 0 0;">'+vencLabel+'</p>' : '') +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
+              '<p style="font-size:13px;color:#fff;margin:0;">' + c.descricao + '</p>' +
+              '<span style="font-size:10px;padding:1px 6px;border-radius:999px;'+tipoBg+';">'+tipoLabel+'</span>' +
+            '</div>' +
+            (c.fornecedor ? '<p style="font-size:11px;color:#484F58;margin:0 0 1px;">'+c.fornecedor+'</p>' : '') +
+            (vencLabel ? '<p style="font-size:11px;color:'+vencCor+';margin:0;">'+vencLabel+'</p>' : '') +
           '</div>' +
           '<p style="font-size:14px;font-weight:500;color:#fff;margin:0;flex-shrink:0;">' + fmtR(c.valor) + '</p>' +
-          (pago ? '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1A2820;color:#3FB950;">Pago</span>' : '') +
+          (pago ? '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1A2820;color:#3FB950;">✓</span>' : '') +
         '</div>';
       });
     } else {
@@ -588,9 +596,9 @@ async function checkClientToken() {
             '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + fmtR(totOrc) + '</p>' +
           '</div>' +
           '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:10px;padding:12px 14px;">' +
-            '<p style="font-size:11px;color:#484F58;margin:0 0 4px;">Seu saldo</p>' +
-            '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + fmtR(totRec - totRecebido) + '</p>' +
-            (proxVenc ? '<p style="font-size:11px;color:#8C603E;margin:4px 0 0;">Próx: ' + fmtD(proxVenc.data_vencimento) + '</p>' : '') +
+            '<p style="font-size:11px;color:#484F58;margin:0 0 4px;">A pagar (obra)</p>' +
+            '<p style="font-size:20px;font-weight:500;color:#fff;margin:0;">' + fmtR(totPagar) + '</p>' +
+            '<p style="font-size:11px;color:#484F58;margin:4px 0 0;">' + fmtR(totPago) + ' pago</p>' +
           '</div>' +
         '</div>' +
 
