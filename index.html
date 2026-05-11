@@ -494,34 +494,47 @@ async function checkClientToken() {
     // Contas do cliente (a receber = parcelas dele)
     let contasHtml = '';
     if (contasCliente.length) {
+      // Ordenar: pendentes/vencidas primeiro, pagas por último
       contasCliente.sort((a,b)=>{
+        const pa = a.status==='pago'||a.status==='recebido';
+        const pb = b.status==='pago'||b.status==='recebido';
+        if (pa !== pb) return pa ? 1 : -1;
         const da = a.data_vencimento ? new Date(a.data_vencimento) : new Date('9999');
         const db2 = b.data_vencimento ? new Date(b.data_vencimento) : new Date('9999');
         return da-db2;
       }).forEach(c => {
-        const pago = c.status==='recebido';
+        const pago = c.status==='pago' || c.status==='recebido';
         const venc = c.data_vencimento ? new Date(c.data_vencimento+'T00:00:00') : null;
         const diff = venc ? Math.round((venc-hoje)/(1000*60*60*24)) : null;
         let vencLabel = '', vencCor = '#484F58';
-        if (pago) { vencLabel = 'Pago'; vencCor = '#3FB950'; }
+        if (pago) { vencLabel = c.tipo==='pagar' ? 'Pago' : 'Recebido'; vencCor = '#3FB950'; }
         else if (venc) {
           if (diff < 0) { vencLabel = 'Vencida há '+Math.abs(diff)+'d'; vencCor = '#9A4A53'; }
           else if (diff === 0) { vencLabel = 'Vence hoje'; vencCor = '#8C603E'; }
           else { vencLabel = 'Vence ' + fmtD(c.data_vencimento); vencCor = diff<=7?'#8C603E':'#484F58'; }
         }
-        const tipoBg = c.tipo==='pagar' ? 'background:#2A1014;color:#9A4A53' : 'background:#1C2333;color:#8B949E';
-        const tipoLabel = c.tipo==='pagar' ? 'Pagar' : 'Receber';
-        contasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;' + (pago?'opacity:0.55;':'') + '">' +
+        // Badge: mostra status real (Pago/Recebido) se já quitado, senão mostra tipo (Pagar/Receber)
+        let tipoBg, tipoLabel;
+        if (pago) {
+          tipoBg = 'background:#1A2820;color:#3FB950';
+          tipoLabel = c.tipo==='pagar' ? 'Pago' : 'Recebido';
+        } else if (c.tipo==='pagar') {
+          tipoBg = 'background:#2A1014;color:#9A4A53';
+          tipoLabel = 'A pagar';
+        } else {
+          tipoBg = 'background:#1C2333;color:#8B949E';
+          tipoLabel = 'A receber';
+        }
+        contasHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;' + (pago?'opacity:0.5;':'') + '">' +
           '<div style="flex:1;min-width:0;">' +
             '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">' +
               '<p style="font-size:13px;color:#fff;margin:0;">' + c.descricao + '</p>' +
               '<span style="font-size:10px;padding:1px 6px;border-radius:999px;'+tipoBg+';">'+tipoLabel+'</span>' +
             '</div>' +
             (c.fornecedor ? '<p style="font-size:11px;color:#484F58;margin:0 0 1px;">'+c.fornecedor+'</p>' : '') +
-            (vencLabel ? '<p style="font-size:11px;color:'+vencCor+';margin:0;">'+vencLabel+'</p>' : '') +
+            (vencLabel && !pago ? '<p style="font-size:11px;color:'+vencCor+';margin:0;">'+vencLabel+'</p>' : '') +
           '</div>' +
-          '<p style="font-size:14px;font-weight:500;color:#fff;margin:0;flex-shrink:0;">' + fmtR(c.valor) + '</p>' +
-          (pago ? '<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1A2820;color:#3FB950;">✓</span>' : '') +
+          '<p style="font-size:14px;font-weight:500;color:' + (pago?'#484F58':'#fff') + ';margin:0;flex-shrink:0;">' + fmtR(c.valor) + '</p>' +
         '</div>';
       });
     } else {
