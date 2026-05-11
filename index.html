@@ -411,19 +411,7 @@ onAuthStateChanged(auth, async user => {
     applyRoleToSidebar();
     renderPage('dashboard');
     setTimeout(initBell, 2000);
-    // DEBUG TEMPORÁRIO - remover após confirmar layout
-    if (window.innerWidth <= 768) {
-      const dbg = document.createElement('div');
-      dbg.style.cssText = 'position:fixed;top:50px;left:0;right:0;background:rgba(255,0,0,0.8);color:#fff;font-size:11px;padding:6px 10px;z-index:9999;font-family:monospace;';
-      const ml = document.getElementById('main-layout');
-      const ct = document.getElementById('content');
-      const bn = document.getElementById('bottom-nav');
-      dbg.textContent = 'viewport:' + window.innerWidth + 'x' + window.innerHeight +
-        ' | app:' + ml?.offsetHeight + 
-        ' | content:' + ct?.offsetHeight +
-        ' | nav:' + bn?.offsetHeight;
-      document.body.appendChild(dbg);
-    }
+
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('main-layout').style.display = 'none';
