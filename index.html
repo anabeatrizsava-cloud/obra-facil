@@ -1121,10 +1121,9 @@ window.loadFin = async (obraId) => {
 
   // ── STAT CARDS ──
   let html = `<div class="stats-grid" style="margin-bottom:20px;">
-    <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Total orçado</div></div>
-    <div class="stat-card"><div class="stat-val">${fmtR(totReal)}</div><div class="stat-lbl">Custo real</div><span class="stat-tag ${totReal>totOrc?'tag-warn':'tag-ok'}">${totReal>totOrc?'acima':'dentro'} do orçamento</span></div>
+    <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Orçamento da obra</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:${(totOrc-totPagar)<0?'#9A4A53':'#3FB950'}">${fmtR(totOrc-totPagar)}</div><div class="stat-lbl">Saldo disponível</div><span class="stat-tag ${(totOrc-totPagar)<0?'tag-warn':'tag-ok'}">${(totOrc-totPagar)<0?'acima do orçamento':'do orçamento restante'}</span></div>
     <div class="stat-card"><div class="stat-val">${fmtR(totPagar)}</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">${fmtR(totPago)} pago</span></div>
-    <div class="stat-card"><div class="stat-val">${fmtR(totRec)}</div><div class="stat-lbl">A receber</div><span class="stat-tag tag-ok">${fmtR(totRecebido)} recebido</span></div>
     <div class="stat-card" style="border:0.5px solid #3D2A0A;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.4"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg><div class="stat-lbl" style="color:#8C603E;margin:0;">Despesas extras</div></div><div class="stat-val">${fmtR(totExtra)}</div><span class="stat-tag tag-warn">${extras.length} lançamento${extras.length!==1?'s':''}</span></div>
   </div>`;
 
