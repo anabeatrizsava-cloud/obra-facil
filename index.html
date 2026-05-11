@@ -1799,9 +1799,9 @@ async function loadNotifications() {
       const n = d.data();
       notifs.push({
         tipo:'suporte',
-        obra: n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte',
+        obra: n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : n.tipo === 'atualizacao_sistema' ? 'Atualização do sistema' : 'Suporte',
         texto: n.texto,
-        icon: n.tipo === 'suporte_resolvido' ? '✅' : '🎫',
+        icon: n.tipo === 'suporte_resolvido' ? '✅' : n.tipo === 'atualizacao_sistema' ? '🚀' : '🎫',
         notifId: d.id
       });
     });
@@ -2090,47 +2090,149 @@ const STATUS_BADGE = {
   resolvida: 'background:#1A2820;color:#3FB950'
 };
 
-async function pgSuporte() {
+const ATU_TIPO_LABEL = { funcionalidade:'Nova funcionalidade', correcao:'Correção', informativo:'Informativo' };
+const ATU_TIPO_BADGE = {
+  funcionalidade: 'background:#0F6E56;color:#9FE1CB',
+  correcao:       'background:#1C2333;color:#8B949E',
+  informativo:    'background:#2A1C0A;color:#8C603E'
+};
+const ATU_DOT = { funcionalidade:'#1D9E75', correcao:'#8B949E', informativo:'#8C603E' };
+
+let suporteAba = 'demandas';
+let suporteFiltro = 'abertas';
+
+async function pgSuporte(aba) {
   setPage('suporte');
+  if (aba) suporteAba = aba;
   const isAdmin = currentUser.email === ADMIN_EMAIL;
 
-  // Load tickets
-  let q;
-  if (isAdmin) {
-    q = query(suporteCol(), orderBy('created_at', 'desc'));
-  } else {
-    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
-  }
+  // Carregar tickets + atualizações em paralelo
+  let q = isAdmin
+    ? query(suporteCol(), orderBy('created_at','desc'))
+    : query(suporteCol(), where('user_email','==',currentUser.email), orderBy('created_at','desc'));
 
-  const snap = await getDocs(q);
-  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
-  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
+  const [ticketSnap, atuSnap] = await Promise.all([
+    getDocs(q),
+    getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')))
+  ]);
 
-  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+  const tickets = ticketSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
+  const pendentes = tickets.filter(t => t.status !== 'resolvida').length;
+
+  // ── HEADER ──
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
     '<div><div class="page-title">Suporte</div><div class="page-sub">' +
-      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
+      (isAdmin ? 'Painel administrativo' : 'Suas demandas de suporte') +
     '</div></div>' +
     (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
   '</div>';
 
-  if (isAdmin && abertas > 0) {
-    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
-      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
-      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
+  // ── ABAS (só admin) ──
+  if (isAdmin) {
+    html += '<div style="display:flex;gap:0;border-bottom:0.5px solid #21262D;margin-bottom:20px;">' +
+      '<div onclick="window.pgSuporte(\'demandas\')" style="padding:9px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (suporteAba==='demandas'?'#1D9E75':'transparent') + ';color:' + (suporteAba==='demandas'?'#fff':'#484F58') + ';margin-bottom:-0.5px;white-space:nowrap;">' +
+        'Demandas' + (pendentes ? ' <span style="background:#2A1C0A;color:#8C603E;border-radius:999px;padding:1px 6px;font-size:10px;">' + pendentes + '</span>' : '') +
+      '</div>' +
+      '<div onclick="window.pgSuporte(\'atualizacoes\')" style="padding:9px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (suporteAba==='atualizacoes'?'#1D9E75':'transparent') + ';color:' + (suporteAba==='atualizacoes'?'#fff':'#484F58') + ';margin-bottom:-0.5px;white-space:nowrap;">' +
+        'Atualizações do sistema' +
+      '</div>' +
     '</div>';
+  }
+
+  // ══ ABA ATUALIZAÇÕES ══
+  if (isAdmin && suporteAba === 'atualizacoes') {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+      '<span style="font-size:13px;color:#8B949E;">' + atualizacoes.length + ' publicação' + (atualizacoes.length!==1?'s':'') + '</span>' +
+      '<button onclick="window.showAtuForm()" class="btn-primary btn-sm">+ Publicar atualização</button>' +
+    '</div>' +
+    '<div id="atu-form-wrap"></div>';
+
+    if (!atualizacoes.length) {
+      html += '<div class="card"><div class="empty-state">Nenhuma atualização publicada ainda</div></div>';
+    } else {
+      atualizacoes.forEach(a => {
+        const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+        html += '<div class="card" style="padding:0;margin-bottom:10px;overflow:hidden;">' +
+          '<div style="display:flex;">' +
+            '<div style="width:3px;background:' + (ATU_DOT[a.tipo]||'#30363D') + ';flex-shrink:0;"></div>' +
+            '<div style="flex:1;padding:14px 16px;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                  '<span style="font-size:13px;font-weight:500;color:#fff;">' + (a.titulo||'Sem título') + '</span>' +
+                  '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (ATU_TIPO_BADGE[a.tipo]||'') + '">' + (ATU_TIPO_LABEL[a.tipo]||a.tipo) + '</span>' +
+                  '<span style="font-size:10px;color:#484F58;">' + dataFmt + '</span>' +
+                '</div>' +
+                '<button onclick="window.delAtu(\'' + a.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;padding:0 2px;">×</button>' +
+              '</div>' +
+              '<div style="font-size:13px;color:#8B949E;line-height:1.6;">' + (a.descricao||'').replace(/\n/g,'<br>') + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+    document.getElementById('content').innerHTML = html;
+    return;
+  }
+
+  // ══ ABA DEMANDAS ══
+
+  // Alerta de pendentes (admin)
+  if (isAdmin && pendentes > 0) {
+    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">' +
+      '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
+      '<span style="font-size:12px;color:#8C603E;">' + pendentes + ' demanda' + (pendentes!==1?'s':'') + ' pendente' + (pendentes!==1?'s':'') + ' aguardando atenção</span>' +
+    '</div>';
+  }
+
+  // Filtros (só admin)
+  if (isAdmin) {
+    const filtros = [
+      ['abertas','Abertas'], ['analise','Em análise'], ['resolvida','Resolvidas'],
+      ['bug','Bugs'], ['melhoria','Melhorias'], ['todas','Todas']
+    ];
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">';
+    filtros.forEach(([val, label]) => {
+      const ativo = suporteFiltro === val;
+      html += '<button onclick="window.setSuporteFiltro(\'' + val + '\')" style="background:' + (ativo?'#21262D':'transparent') + ';border:0.5px solid ' + (ativo?'#444':'#21262D') + ';border-radius:999px;padding:4px 12px;font-size:11px;color:' + (ativo?'#fff':'#484F58') + ';cursor:pointer;">' + label + '</button>';
+    });
+    html += '</div>';
   }
 
   html += '<div id="ticket-form-wrap"></div>';
 
-  if (!tickets.length) {
+  // Aplicar filtro
+  const filtrados = isAdmin ? tickets.filter(t => {
+    if (suporteFiltro === 'todas') return true;
+    if (suporteFiltro === 'abertas') return t.status !== 'resolvida';
+    if (suporteFiltro === 'bug' || suporteFiltro === 'melhoria') return t.tipo === suporteFiltro;
+    return t.status === suporteFiltro;
+  }) : tickets;
+
+  if (!filtrados.length) {
     html += '<div class="card"><div class="empty-state">' +
-      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
+      (isAdmin ? 'Nenhuma demanda encontrada' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
     '</div></div>';
   } else {
-    tickets.forEach(t => {
+    // Separar abertas/análise das resolvidas
+    const ativas = filtrados.filter(t => t.status !== 'resolvida');
+    const resolvidas = filtrados.filter(t => t.status === 'resolvida');
+
+    const renderTicket = (t, colapsado) => {
       const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
       const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
+      if (colapsado) {
+        // Resolvidas: linha compacta colapsada
+        return '<div class="card" style="padding:10px 14px;margin-bottom:6px;opacity:0.55;display:flex;align-items:center;gap:10px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<span style="font-size:12px;color:#fff;">' + t.titulo + '</span>' +
+            (isAdmin ? '<span style="font-size:11px;color:#484F58;margin-left:8px;">' + t.user_email + '</span>' : '') +
+          '</div>' +
+          '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+          '<span style="font-size:10px;color:#3FB950;">✓ ' + (dataRes||dataFmt) + '</span>' +
+        '</div>';
+      }
+      return '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
           '<div style="flex:1;min-width:0;">' +
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
@@ -2138,24 +2240,102 @@ async function pgSuporte() {
               '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
               '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
             '</div>' +
-            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
+            (isAdmin ? '<div style="font-size:11px;color:#484F58;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
           '</div>' +
           (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
             (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
             '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
           '</div>' : '') +
         '</div>' +
-        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
-        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
+        '<div style="font-size:13px;color:#8B949E;line-height:1.6;">' + t.descricao + '</div>' +
+        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:10px;">' +
           '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
           '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
         '</div>' : '') +
       '</div>';
-    });
+    };
+
+    ativas.forEach(t => { html += renderTicket(t, false); });
+
+    if (resolvidas.length) {
+      html += '<div style="font-size:11px;color:#484F58;margin:16px 0 8px;letter-spacing:0.04em;">RESOLVIDAS (' + resolvidas.length + ')</div>';
+      resolvidas.forEach(t => { html += renderTicket(t, true); });
+    }
   }
 
   document.getElementById('content').innerHTML = html;
 }
+
+window.pgSuporte = pgSuporte;
+
+window.setSuporteFiltro = (filtro) => {
+  suporteFiltro = filtro;
+  pgSuporte('demandas');
+};
+
+// ── FORM ATUALIZAÇÃO ──
+window.showAtuForm = () => {
+  const wrap = document.getElementById('atu-form-wrap');
+  if (!wrap) return;
+  wrap.innerHTML =
+    '<div class="form-wrap" style="margin-bottom:20px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+        '<span style="font-size:14px;font-weight:500;color:#fff;">Publicar atualização</span>' +
+        '<button class="btn-close" onclick="document.getElementById(\'atu-form-wrap\').innerHTML=\'\'">×</button>' +
+      '</div>' +
+      '<div class="form-grid">' +
+        '<div class="form-group"><label class="form-label">Tipo *</label>' +
+          '<select class="form-input" id="atu-tipo">' +
+            '<option value="funcionalidade">Nova funcionalidade</option>' +
+            '<option value="correcao">Correção</option>' +
+            '<option value="informativo">Informativo</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Título *</label>' +
+          '<input class="form-input" id="atu-titulo" placeholder="Ex: Novo módulo de materiais">' +
+        '</div>' +
+        '<div class="form-group form-full"><label class="form-label">Descrição *</label>' +
+          '<textarea class="form-input" id="atu-desc" style="height:100px;resize:none;" placeholder="Descreva o que foi atualizado..."></textarea>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'atu-form-wrap\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" onclick="window.salvarAtu()">Publicar</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.salvarAtu = async () => {
+  const titulo = document.getElementById('atu-titulo').value.trim();
+  const desc = document.getElementById('atu-desc').value.trim();
+  if (!titulo) return alert('Título obrigatório');
+  if (!desc) return alert('Descrição obrigatória');
+
+  await addDoc(collection(db,'atualizacoes_sistema'), {
+    tipo: document.getElementById('atu-tipo').value,
+    titulo, descricao: desc,
+    created_at: serverTimestamp()
+  });
+
+  // Notificar TODOS os usuários no sininho
+  const usersSnap = await getDocs(collection(db,'usuarios'));
+  const notifPromises = usersSnap.docs.map(u => addDoc(collection(db,'notificacoes'), {
+    para: u.data().email,
+    tipo: 'atualizacao_sistema',
+    texto: 'Nova atualização do sistema: ' + titulo,
+    lida: false,
+    created_at: serverTimestamp()
+  }));
+  await Promise.all(notifPromises);
+
+  pgSuporte('atualizacoes');
+};
+
+window.delAtu = async (id) => {
+  if (!confirm('Excluir esta atualização?')) return;
+  await deleteDoc(doc(db,'atualizacoes_sistema',id));
+  pgSuporte('atualizacoes');
+};
 
 window.showTicketForm = () => {
   document.getElementById('ticket-form-wrap').innerHTML =
@@ -2183,59 +2363,41 @@ window.salvarTicket = async () => {
   const desc = document.getElementById('tk-desc').value.trim();
   if (!titulo) return alert('Título obrigatório');
   if (!desc) return alert('Descrição obrigatória');
-
   await addDoc(suporteCol(), {
-    titulo,
-    descricao: desc,
+    titulo, descricao: desc,
     tipo: document.getElementById('tk-tipo').value,
     status: 'aberta',
     user_email: currentUser.email,
     user_uid: uid(),
     created_at: serverTimestamp()
   });
-
-  // Notificação para o admin no sininho
   await addDoc(collection(db,'notificacoes'), {
-    para: ADMIN_EMAIL,
-    tipo: 'suporte',
+    para: ADMIN_EMAIL, tipo: 'suporte',
     texto: 'Nova demanda de ' + currentUser.email + ': ' + titulo,
-    lida: false,
-    created_at: serverTimestamp()
+    lida: false, created_at: serverTimestamp()
   });
-
-  await pgSuporte();
+  await pgSuporte('demandas');
 };
 
 window.avancarTicket = async (id, novoStatus) => {
   await updateDoc(doc(db,'suporte',id), { status: novoStatus });
-  await pgSuporte();
+  await pgSuporte('demandas');
 };
 
 window.resolverTicket = async (id) => {
   const resposta = prompt('Digite a resposta/resolução para o usuário:');
   if (!resposta) return;
-
-  // Get ticket to notify user
-  const ticketSnap = await getDoc(doc(db,'suporte',id));
-  const ticket = ticketSnap.data();
-
-  await updateDoc(doc(db,'suporte',id), {
-    status: 'resolvida',
-    resposta,
-    resolved_at: serverTimestamp()
-  });
-
-  // Notificação para o usuário que abriu
+  const tSnap = await getDoc(doc(db,'suporte',id));
+  const ticket = tSnap.data();
+  await updateDoc(doc(db,'suporte',id), { status:'resolvida', resposta, resolved_at: serverTimestamp() });
   await addDoc(collection(db,'notificacoes'), {
-    para: ticket.user_email,
-    tipo: 'suporte_resolvido',
+    para: ticket.user_email, tipo: 'suporte_resolvido',
     texto: 'Sua demanda "' + ticket.titulo + '" foi resolvida!',
-    lida: false,
-    created_at: serverTimestamp()
+    lida: false, created_at: serverTimestamp()
   });
-
-  await pgSuporte();
+  await pgSuporte('demandas');
 };
+
 
 
 // ── BOTTOM NAV MOBILE ──
