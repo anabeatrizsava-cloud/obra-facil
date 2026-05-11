@@ -11,8 +11,8 @@
 <title>ObraFácil</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html{height:100%;background:#0D1117;}
-body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0D1117;}
+html{height:100%;}
+body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 #app{
   width:100%;
   height:100%;
@@ -41,9 +41,6 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .nav-item:hover{background:#161B22;color:#8B949E;}
 .nav-item.active{background:#161B22;color:#fff;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:18px;background:#30363D;border-radius:0 2px 2px 0;}
-@media(max-width:768px){
-  .nav-item.active::before{display:none;}
-}
 .nav-dot{display:none;}
 .nav-tip{display:none;position:absolute;left:46px;top:50%;transform:translateY(-50%);background:#161B22;border:0.5px solid #30363D;border-radius:6px;padding:5px 10px;font-size:12px;color:#fff;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.5);}
 .nav-item:hover .nav-tip{display:block;}
@@ -91,71 +88,22 @@ body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSy
 .wip{background:#161B22;border:0.5px solid #21262D;border-radius:12px;padding:48px;text-align:center;color:#484F58;font-size:14px;}
 .loading{color:#484F58;font-size:13px;padding:24px 0;}
 
-/* ── BOTTOM NAV & SHEET (mobile-only components, always styled) ── */
-#bottom-nav{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  height:56px;
-  background:#161B22;
-  border-top:0.5px solid #21262D;
-  z-index:200;
-}
-.bn-quick-row{
-  display:flex;flex-direction:row;
-  align-items:center;justify-content:space-around;
-  width:100%;height:100%;
-  padding:0 4px;
-}
-.bn-item{
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:3px;flex:1;height:100%;
-  cursor:pointer;color:#484F58;font-size:10px;
-  border-radius:10px;padding:4px 2px;
-  transition:color 0.15s;
-  -webkit-tap-highlight-color:transparent;
-}
-.bn-item svg{flex-shrink:0;}
-.bn-item span{font-size:10px;line-height:1.1;white-space:nowrap;}
-.bn-item.active{color:#fff;}
-#more-drawer{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  background:#161B22;
-  border-top:0.5px solid #30363D;
-  border-radius:16px 16px 0 0;
-  z-index:300;
-  padding-bottom:env(safe-area-inset-bottom,0);
-}
-.sheet-handle-wrap{display:flex;justify-content:center;padding:12px 0 8px;cursor:pointer;}
-.sheet-handle{width:36px;height:4px;background:#30363D;border-radius:99px;}
-.sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px 24px;}
-.sheet-item{
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:6px;padding:12px 6px;
-  border-radius:10px;cursor:pointer;
-  color:#8B949E;font-size:11px;
-  background:#0D1117;
-  -webkit-tap-highlight-color:transparent;
-}
-.sheet-item:active{background:#21262D;color:#fff;}
-.sheet-icon{width:36px;height:36px;border-radius:8px;background:#21262D;display:flex;align-items:center;justify-content:center;}
-
-/* ── MOBILE MEDIA QUERY ── */
+/* ── MOBILE ── */
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#161B22;border-top:0.5px solid #21262D;z-index:200;flex-direction:row!important;}
+#more-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;z-index:199;}
 @media(max-width:768px){
   .topbar{padding:0 14px;}
   .topbar-email{display:none;}
   .sidebar{display:none!important;}
   .nav-tip{display:none!important;}
-  .content{padding:16px 14px 72px;-webkit-overflow-scrolling:touch;}
+  .content{padding:16px 14px 88px;}
+  #bottom-nav{display:flex!important;flex-direction:row!important;align-items:center!important;}
   .form-grid{grid-template-columns:1fr!important;}
   .form-full{grid-column:1!important;}
   .stats-grid{grid-template-columns:1fr 1fr!important;}
   .info-grid{grid-template-columns:1fr 1fr!important;}
   .page-title{font-size:16px;}
   .card{margin-bottom:8px;}
-  #bottom-nav{display:block;}
 }
 </style>
 </head>
@@ -376,18 +324,6 @@ onAuthStateChanged(auth, async user => {
     }
     currentRole = roleData.role;
     currentPerms = roleData.modulos;
-    // Salva uid→email em coleção própria para que admin possa ver obras do stand
-    // Usa coleção user_uids (regra: allow read, write: if true) igual a finance_tasks
-    addDoc(collection(db,'user_uids'), {
-      uid: user.uid,
-      email: user.email,
-      perfil: currentRole,
-      updated_at: serverTimestamp()
-    }).catch(()=>{});
-    // Tenta também atualizar documento em usuarios (funciona se regras permitirem)
-    if (roleData.docId) {
-      updateDoc(doc(db,'usuarios',roleData.docId), { uid: user.uid }).catch(()=>{});
-    }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-layout').style.display = '';
     // Apply mobile layout multiple times to ensure DOM is ready
@@ -440,63 +376,6 @@ const uid = () => currentUser.uid;
 const obrasCol = () => collection(db, 'obras');
 const obraRef = (id) => doc(db, 'obras', id);
 const sub = (obraId, name) => collection(db, 'obras', obraId, name);
-
-// ── HELPER: busca obras do usuário atual (admin vê obras dos stands também) ──
-async function getObras() {
-  const snapOwn = await getDocs(query(obrasCol(), where('uid','==',uid())));
-  let obras = snapOwn.docs.map(d => ({id:d.id,...d.data()}));
-  if (currentRole === 'admin') {
-    // Busca UIDs dos stands — tenta coleção usuarios primeiro, depois user_uids como fallback
-    const standUids = new Set();
-
-    const standsSnap = await getDocs(query(collection(db,'usuarios'), where('perfil','==','stand')));
-    standsSnap.docs.forEach(d => { if (d.data().uid) standUids.add(d.data().uid); });
-
-    // Fallback: user_uids (gravado pelo próprio stand no login, regra if true)
-    const uidsSnap = await getDocs(query(collection(db,'user_uids'), where('perfil','==','stand')));
-    uidsSnap.docs.forEach(d => { if (d.data().uid) standUids.add(d.data().uid); });
-
-    for (const sUid of standUids) {
-      const sSnap = await getDocs(query(obrasCol(), where('uid','==',sUid)));
-      sSnap.docs.forEach(d => {
-        if (!obras.find(o => o.id === d.id)) obras.push({id:d.id,...d.data()});
-      });
-    }
-  }
-  return obras;
-}
-
-// ── HELPER: busca email do owner de uma obra (para notificar stand) ──
-const _ownerEmailCache = {};
-async function getOwnerEmail(obraId) {
-  if (_ownerEmailCache[obraId]) return _ownerEmailCache[obraId];
-  const obraDoc = await getDoc(obraRef(obraId));
-  if (!obraDoc.exists()) return null;
-  const obraUid = obraDoc.data().uid;
-  if (!obraUid || obraUid === uid()) return null; // própria obra, não notifica
-  const usersSnap = await getDocs(query(collection(db,'usuarios'), where('uid','==',obraUid)));
-  if (usersSnap.empty) return null;
-  const email = usersSnap.docs[0].data().email;
-  _ownerEmailCache[obraId] = email;
-  return email;
-}
-
-// ── NOTIFICAR STAND sobre alteração feita pelo admin ──
-async function notificarStand(obraId, obraNome, acao, detalhe) {
-  if (currentRole !== 'admin') return; // só admin notifica stand
-  const paraEmail = await getOwnerEmail(obraId);
-  if (!paraEmail) return; // obra é do próprio admin
-  await addDoc(collection(db,'notificacoes'), {
-    para: paraEmail,
-    de: currentUser.email,
-    obra_id: obraId,
-    obra_nome: obraNome,
-    acao,
-    detalhe,
-    lida: false,
-    created_at: serverTimestamp()
-  });
-}
 const fmtR = v => v ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v) : '—';
 const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
 const SL = {planejamento:'Planejamento', andamento:'Em andamento', pausada:'Pausada', concluida:'Concluída'};
@@ -524,7 +403,7 @@ async function renderPage(page) {
 
 // ══ DASHBOARD ══
 async function pgDash() {
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   const totOrc = obras.reduce((s,o) => s+(parseFloat(o.valor_orcado)||0), 0);
   const emAnd = obras.filter(o => o.status==='andamento').length;
@@ -558,7 +437,7 @@ window.goObras = () => { setPage('obras'); obraAberta=null; renderPage('obras');
 // ══ OBRAS ══
 async function pgObras() {
   setPage('obras');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.created_at?.seconds||0)-(a.created_at?.seconds||0));
   let html = `<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
     <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
@@ -654,111 +533,6 @@ window.abrirObra = async (id) => {
 };
 
 // ══ OBRA DETALHE ══
-function renderGantt(etapas, obra) {
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  // Coletar etapas com datas válidas
-  const withDates = etapas.filter(e => e.data_inicio && e.data_prevista_fim);
-  const noDates = etapas.filter(e => !e.data_inicio || !e.data_prevista_fim);
-
-  if (!withDates.length) {
-    return `<div class="card" style="margin-bottom:16px;padding:14px 16px;">
-      <div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:4px;">Cronograma</div>
-      <div style="font-size:12px;color:#484F58;">Cadastre datas de início e fim nas etapas para visualizar o Gantt.</div>
-    </div>`;
-  }
-
-  // Range total: menor data_inicio → maior data_prevista_fim (ou obra)
-  const allStarts = withDates.map(e => new Date(e.data_inicio+'T00:00:00'));
-  const allEnds   = withDates.map(e => new Date(e.data_prevista_fim+'T00:00:00'));
-  let rangeStart = new Date(Math.min(...allStarts));
-  let rangeEnd   = new Date(Math.max(...allEnds));
-
-  // Garantir ao menos 1 mês visível e incluir hoje
-  if (today < rangeStart) rangeStart = new Date(today);
-  if (today > rangeEnd)   rangeEnd   = new Date(today);
-  // Padding: 3 dias antes e depois
-  rangeStart.setDate(rangeStart.getDate() - 3);
-  rangeEnd.setDate(rangeEnd.getDate() + 3);
-
-  const totalDays = Math.max((rangeEnd - rangeStart) / 86400000, 1);
-
-  // Calcular posição relativa %
-  const pct = d => Math.max(0, Math.min(100, ((d - rangeStart) / 86400000 / totalDays) * 100));
-
-  // Meses no range para header
-  const months = [];
-  const cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-  while (cur <= rangeEnd) {
-    const mStart = new Date(cur);
-    const mEnd   = new Date(cur.getFullYear(), cur.getMonth()+1, 0);
-    const left   = pct(mStart < rangeStart ? rangeStart : mStart);
-    const right  = pct(mEnd   > rangeEnd   ? rangeEnd   : mEnd);
-    months.push({ label: mStart.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''), left, width: right-left });
-    cur.setMonth(cur.getMonth()+1);
-  }
-
-  // Linha do hoje
-  const todayPct = pct(today);
-
-  // Cor e label por status/atraso
-  const barStyle = (et) => {
-    if (et.status === 'concluida') return { bg:'#0F6E56', color:'#9FE1CB', label:'✓ concluída' };
-    const fim = new Date(et.data_prevista_fim+'T00:00:00');
-    if (fim < today)              return { bg:'#993C1D', color:'#F5C4B3', label:'⚠ atrasada' };
-    if (et.status === 'andamento') return { bg:'#3C3489', color:'#CECBF6', label:'em andamento' };
-    return { bg:'#30363D', color:'#8B949E', label:'planejada' };
-  };
-
-  // Linhas das etapas
-  const rows = withDates.map(et => {
-    const s   = new Date(et.data_inicio+'T00:00:00');
-    const e   = new Date(et.data_prevista_fim+'T00:00:00');
-    const left  = pct(s);
-    const width = Math.max(pct(e) - left, 1.5);
-    const bs    = barStyle(et);
-    const nome  = et.nome.length > 16 ? et.nome.slice(0,15)+'…' : et.nome;
-    return `<div style="display:flex;align-items:center;margin-bottom:6px;gap:0;">
-      <div style="width:100px;min-width:100px;font-size:11px;color:#8B949E;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>
-      <div style="flex:1;position:relative;height:24px;">
-        <div style="position:absolute;top:4px;height:16px;left:${left}%;width:${width}%;background:${bs.bg};border-radius:3px;display:flex;align-items:center;padding:0 5px;overflow:hidden;">
-          <span style="font-size:10px;color:${bs.color};white-space:nowrap;overflow:hidden;">${width>12?bs.label:''}</span>
-        </div>
-        <div style="position:absolute;top:0;bottom:0;left:${todayPct}%;width:1px;background:#484F58;opacity:0.6;"></div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Aviso etapas sem data
-  const semData = noDates.length
-    ? `<div style="font-size:11px;color:#484F58;margin-top:6px;">${noDates.length} etapa${noDates.length>1?'s':''} sem datas cadastradas não ${noDates.length>1?'aparecem':'aparece'} no cronograma.</div>`
-    : '';
-
-  // Header de meses
-  const monthHeader = months.map(m =>
-    `<div style="position:absolute;left:${m.left}%;width:${m.width}%;text-align:center;font-size:10px;color:#484F58;overflow:hidden;">${m.label}</div>`
-  ).join('');
-
-  return `<div class="card" style="margin-bottom:16px;padding:14px 16px;overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <span style="font-size:13px;font-weight:500;color:#fff;">Cronograma</span>
-      <span style="font-size:11px;color:#484F58;">hoje: ${today.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>
-    </div>
-    <div style="display:flex;align-items:center;margin-bottom:4px;gap:0;">
-      <div style="width:100px;min-width:100px;"></div>
-      <div style="flex:1;position:relative;height:16px;">${monthHeader}</div>
-    </div>
-    <div style="border-bottom:0.5px solid #21262D;margin-bottom:8px;margin-left:100px;"></div>
-    ${rows}
-    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-      ${[['#0F6E56','#9FE1CB','concluída'],['#993C1D','#F5C4B3','atrasada'],['#3C3489','#CECBF6','em andamento'],['#30363D','#8B949E','planejada']].map(([bg,c,l])=>
-        `<div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:${bg};"></div><span style="font-size:10px;color:#484F58;">${l}</span></div>`
-      ).join('')}
-    </div>
-    ${semData}
-  </div>`;
-}
-
 async function pgDetalhe() {
   const o = obraAberta;
   const [etSnap, tSnap] = await Promise.all([
@@ -779,7 +553,6 @@ async function pgDetalhe() {
     ${[['Cliente',o.nome_cliente||'—'],['Tipo',o.tipo||'—'],['Início',fmtD(o.data_inicio)],['Previsão fim',fmtD(o.data_prevista_fim)],['Orçamento',fmtR(o.valor_orcado)],['Responsável',o.responsavel_tecnico||'—']].map(([l,v])=>`<div class="info-card"><div class="info-label">${l}</div><div class="info-value">${v}</div></div>`).join('')}
   </div>
   ${o.endereco?`<div class="card" style="padding:12px 14px;margin-bottom:16px;"><div class="info-label">Endereço</div><div style="font-size:13px;color:#fff;margin-top:4px;">${o.endereco}</div></div>`:''}
-  ${etapas.length ? renderGantt(etapas, o) : ''}
   <div class="sub-header"><span class="sub-title">Etapas e tarefas</span><button class="btn-primary btn-sm" onclick="window.showEtapaForm()">+ Nova etapa</button></div>
   <div id="etapa-form-wrap"></div>
   <div id="etapas-list">`;
@@ -789,11 +562,8 @@ async function pgDetalhe() {
     const ets = tarefas.filter(t => t.etapa_id===et.id);
     const done = ets.filter(t => t.status==='concluida').length;
     const pct = ets.length ? Math.round((done/ets.length)*100) : 0;
-    html += `<div class="etapa-card" data-etapa-id="${et.id}">
+    html += `<div class="etapa-card">
       <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;">
-        <div class="drag-handle" draggable="true" title="Arrastar para reordenar" style="cursor:grab;color:#30363D;flex-shrink:0;display:flex;align-items:center;padding:2px 4px 2px 0;touch-action:none;user-select:none;-webkit-user-select:none;">
-          <svg width="12" height="16" viewBox="0 0 12 16" fill="none"><circle cx="4" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="4" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="4" cy="13" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg>
-        </div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:500;color:#fff;">${et.nome}</div>
           <div style="font-size:11px;color:#484F58;margin-top:2px;">${ets.length?`${done}/${ets.length} tarefas · ${pct}%`:'Sem tarefas'}${et.data_prevista_fim?` · Fim: ${fmtD(et.data_prevista_fim)}`:''}</div>
@@ -801,142 +571,34 @@ async function pgDetalhe() {
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn-primary btn-xs" onclick="window.showTarefaForm('${et.id}')">+ Tarefa</button>
-          <button class="btn-secondary btn-xs" onclick="window.editarEtapa('${et.id}','${et.nome.replace(/'/g,"\\'")}','${et.data_inicio||''}','${et.data_prevista_fim||''}','${et.status||'pendente'}')">Editar</button>
           <button class="btn-secondary btn-xs" onclick="window.delEtapa('${et.id}')">Excluir</button>
         </div>
       </div>
-      <div id="et-edit-${et.id}"></div>
       <div id="tf-form-${et.id}"></div>`;
     ets.forEach(t => {
-      const concluida = t.status === 'concluida';
-      const temRegistro = concluida && (t.conclusao_descricao || (t.conclusao_fotos && t.conclusao_fotos.length));
-      html += `<div class="tarefa-row">
-        <div class="tarefa-check ${concluida?'done':''}" onclick="window.togTarefa('${t.id}','${t.status}')">
-          ${concluida?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-        </div>
-        <div style="flex:1;">
-          <div style="font-size:13px;color:${concluida?'#484F58':'#fff'};text-decoration:${concluida?'line-through':'none'};">${t.nome}</div>
-          <div style="display:flex;gap:10px;margin-top:2px;flex-wrap:wrap;">
-            ${t.responsavel?`<span style="font-size:11px;color:#484F58;">${t.responsavel}</span>`:''}
-            ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
-            ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#F09595':'#FAC775'};">${t.prioridade}</span>`:''}
-            ${t.data_conclusao?`<span style="font-size:11px;color:#3FB950;">concluída ${fmtD(t.data_conclusao)}</span>`:''}
+      html += `<div class="tarefa-row" style="flex-direction:column;align-items:stretch;gap:0;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div class="tarefa-check ${t.status==='concluida'?'done':''}" onclick="window.togTarefa('${t.id}','${t.status}')" style="margin-top:2px;">
+            ${t.status==='concluida'?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7.5 8,2.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
           </div>
-          ${temRegistro?`<div onclick="window.togRegistro('reg-${t.id}')" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;background:#1A2820;border:0.5px solid #2E4030;border-radius:6px;padding:3px 9px;font-size:11px;color:#3FB950;cursor:pointer;">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 5h8M5 1l4 4-4 4" stroke="#3FB950" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Ver registro de conclusão
-          </div>`:''}
-          ${temRegistro?`<div id="reg-${t.id}" style="display:none;margin-top:6px;border-left:2px solid #1D9E75;padding:8px 10px;background:#0D1117;border-radius:0 6px 6px 0;">
-            ${t.conclusao_descricao?`<div style="font-size:12px;color:#8B949E;line-height:1.5;margin-bottom:6px;">${t.conclusao_descricao}</div>`:''}
-            ${t.conclusao_fotos&&t.conclusao_fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;">${t.conclusao_fotos.map(f=>`<img src="${f}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${f}','_blank')">`).join('')}</div>`:''}
-          </div>`:''}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;color:${t.status==='concluida'?'#484F58':'#fff'};text-decoration:${t.status==='concluida'?'line-through':'none'};">${t.nome}</div>
+            <div style="display:flex;gap:10px;margin-top:2px;flex-wrap:wrap;">
+              ${t.responsavel?`<span style="font-size:11px;color:#484F58;">${t.responsavel}</span>`:''}
+              ${t.data_prevista?`<span style="font-size:11px;color:#484F58;">${fmtD(t.data_prevista)}</span>`:''}
+              ${t.prioridade&&t.prioridade!=='normal'?`<span style="font-size:11px;color:${t.prioridade==='urgente'?'#9A4A53':'#8C603E'};">${t.prioridade}</span>`:''}
+            </div>
+            ${t.observacao?`<div style="font-size:12px;color:#8B949E;margin-top:6px;line-height:1.5;padding:6px 10px;background:#161B22;border-radius:6px;border-left:2px solid #30363D;">${t.observacao}</div>`:''}
+            ${t.fotos&&t.fotos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${t.fotos.map(f=>'<img src="'+f+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer;border:0.5px solid #21262D;" onclick="window.open(\''+f+'\',\'_blank\')">').join('')}</div>`:''}
+          </div>
+          <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;flex-shrink:0;">×</button>
         </div>
-        <button onclick="window.delTarefa('${t.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
       </div>`;
     });
     html += '</div>';
   });
   html += '</div>';
   document.getElementById('content').innerHTML = html;
-  initEtapasDrag();
-}
-
-// ── DRAG & DROP ETAPAS ──
-function initEtapasDrag() {
-  const list = document.getElementById('etapas-list');
-  if (!list) return;
-  let dragEl = null, placeholder = null;
-
-  const getCards = () => [...list.querySelectorAll('.etapa-card')];
-
-  const makePlaceholder = (height) => {
-    const p = document.createElement('div');
-    p.style.cssText = `height:${height}px;border:1px dashed #30363D;border-radius:10px;margin-bottom:10px;background:transparent;`;
-    p.id = 'drag-placeholder';
-    return p;
-  };
-
-  const getRelY = (e) => {
-    const touch = e.touches ? e.touches[0] : e;
-    return touch.clientY - list.getBoundingClientRect().top + list.scrollTop;
-  };
-
-  const getCardBelow = (y) => {
-    return getCards().filter(c => c !== dragEl).find(c => {
-      const box = c.getBoundingClientRect();
-      const listTop = list.getBoundingClientRect().top;
-      const mid = box.top - listTop + box.height / 2 + list.scrollTop;
-      return y < mid;
-    }) || null;
-  };
-
-  // ── MOUSE ──
-  list.addEventListener('dragstart', e => {
-    const handle = e.target.closest('.drag-handle');
-    if (!handle) { e.preventDefault(); return; }
-    const card = handle.closest('.etapa-card');
-    if (!card) return;
-    dragEl = card;
-    placeholder = makePlaceholder(card.offsetHeight);
-    setTimeout(() => { card.style.opacity = '0.35'; card.after(placeholder); }, 0);
-    e.dataTransfer.effectAllowed = 'move';
-  });
-
-  list.addEventListener('dragover', e => {
-    e.preventDefault();
-    if (!dragEl || !placeholder) return;
-    const below = getCardBelow(getRelY(e));
-    if (below) list.insertBefore(placeholder, below);
-    else list.appendChild(placeholder);
-  });
-
-  list.addEventListener('dragend', async () => {
-    if (!dragEl || !placeholder) return;
-    dragEl.style.opacity = '';
-    placeholder.replaceWith(dragEl);
-    placeholder = null;
-    await salvarOrdemEtapas();
-    dragEl = null;
-  });
-
-  // ── TOUCH (mobile) ──
-  list.addEventListener('touchstart', e => {
-    const handle = e.target.closest('.drag-handle');
-    if (!handle) return;
-    e.preventDefault();
-    const card = handle.closest('.etapa-card');
-    if (!card) return;
-    dragEl = card;
-    placeholder = makePlaceholder(card.offsetHeight);
-    card.style.opacity = '0.35';
-    card.after(placeholder);
-  }, { passive: false });
-
-  list.addEventListener('touchmove', e => {
-    if (!dragEl || !placeholder) return;
-    e.preventDefault();
-    const below = getCardBelow(getRelY(e));
-    if (below) list.insertBefore(placeholder, below);
-    else list.appendChild(placeholder);
-  }, { passive: false });
-
-  list.addEventListener('touchend', async () => {
-    if (!dragEl || !placeholder) return;
-    dragEl.style.opacity = '';
-    placeholder.replaceWith(dragEl);
-    placeholder = null;
-    await salvarOrdemEtapas();
-    dragEl = null;
-  });
-}
-
-async function salvarOrdemEtapas() {
-  const list = document.getElementById('etapas-list');
-  if (!list || !obraAberta) return;
-  const updates = [...list.querySelectorAll('.etapa-card')].map((card, i) =>
-    updateDoc(doc(db, 'obras', obraAberta.id, 'etapas', card.dataset.etapaId), { ordem: i + 1 })
-  );
-  await Promise.all(updates);
 }
 
 window.voltarObras = () => { obraAberta=null; renderPage('obras'); };
@@ -973,57 +635,12 @@ window.salvarEtapa = async () => {
   if (!nome) return alert('Nome obrigatório');
   const s = await getDocs(sub(obraAberta.id,'etapas'));
   await addDoc(sub(obraAberta.id,'etapas'), {nome, obra_id:obraAberta.id, ordem:s.size+1, status:'pendente', data_inicio:document.getElementById('et-ini').value, data_prevista_fim:document.getElementById('et-fim').value, created_at:serverTimestamp()});
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Nova etapa criada', `Etapa "${nome}" foi adicionada à obra.`);
-  await pgDetalhe();
-};
-
-window.editarEtapa = (id, nome, ini, fim, status) => {
-  // Fechar qualquer outro form de edição aberto
-  document.querySelectorAll('[id^="et-edit-"]').forEach(el => { if (el.id !== 'et-edit-'+id) el.innerHTML = ''; });
-  const wrap = document.getElementById('et-edit-'+id);
-  if (!wrap) return;
-  if (wrap.innerHTML) { wrap.innerHTML = ''; return; } // toggle
-  wrap.innerHTML = `<div style="padding:12px 16px;background:#0D1117;border-top:0.5px solid #21262D;">
-    <div class="form-grid" style="margin-bottom:10px;">
-      <div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="eted-nome-${id}" value="${nome}"></div>
-      <div class="form-group"><label class="form-label">Início</label><input type="date" class="form-input" id="eted-ini-${id}" value="${ini}"></div>
-      <div class="form-group"><label class="form-label">Previsão fim</label><input type="date" class="form-input" id="eted-fim-${id}" value="${fim}"></div>
-      <div class="form-group form-full"><label class="form-label">Status</label>
-        <select class="form-input" id="eted-st-${id}">
-          <option value="pendente" ${status==='pendente'?'selected':''}>Pendente</option>
-          <option value="andamento" ${status==='andamento'?'selected':''}>Em andamento</option>
-          <option value="concluida" ${status==='concluida'?'selected':''}>Concluída</option>
-          <option value="pausada" ${status==='pausada'?'selected':''}>Pausada</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-secondary btn-sm" onclick="document.getElementById('et-edit-${id}').innerHTML=''">Cancelar</button>
-      <button class="btn-primary btn-sm" onclick="window.salvarEdicaoEtapa('${id}')">Salvar</button>
-    </div>
-  </div>`;
-};
-
-window.salvarEdicaoEtapa = async (id) => {
-  const nome = document.getElementById('eted-nome-'+id)?.value.trim();
-  if (!nome) return alert('Nome obrigatório');
-  const novoStatus = document.getElementById('eted-st-'+id)?.value || 'pendente';
-  await updateDoc(doc(db,'obras',obraAberta.id,'etapas',id), {
-    nome,
-    data_inicio: document.getElementById('eted-ini-'+id)?.value || '',
-    data_prevista_fim: document.getElementById('eted-fim-'+id)?.value || '',
-    status: novoStatus
-  });
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Etapa editada', `Etapa "${nome}" foi atualizada (status: ${novoStatus}).`);
   await pgDetalhe();
 };
 
 window.delEtapa = async (id) => {
   if (!confirm('Excluir?')) return;
-  const etDoc = await getDoc(doc(db,'obras',obraAberta.id,'etapas',id));
-  const etNome = etDoc.exists() ? etDoc.data().nome : id;
   await deleteDoc(doc(db,'obras',obraAberta.id,'etapas',id));
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Etapa excluída', `Etapa "${etNome}" foi removida da obra.`);
   await pgDetalhe();
 };
 
@@ -1062,123 +679,24 @@ window.salvarTarefa = async (etapaId) => {
     try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
   }
   await addDoc(sub(obraAberta.id,'tarefas'), {nome, etapa_id:etapaId, obra_id:obraAberta.id, responsavel:document.getElementById(`tf-r-${etapaId}`).value, data_prevista:document.getElementById(`tf-d-${etapaId}`).value, prioridade:document.getElementById(`tf-p-${etapaId}`).value, observacao:document.getElementById(`tf-o-${etapaId}`)?.value||'', status:'pendente', fotos, created_at:serverTimestamp()});
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Nova tarefa criada', `Tarefa "${nome}" foi adicionada.`);
   await pgDetalhe();
 };
 
 window.togTarefa = async (id, status) => {
-  if (status === 'concluida') {
-    // Volta para pendente direto, sem popup
-    await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:'pendente', data_conclusao:null});
-    const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
-    const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
-    await notificarStand(obraAberta.id, obraAberta.nome, 'Status de tarefa alterado', `Tarefa "${tarefaNome}" reaberta como pendente.`);
-    await pgDetalhe();
-  } else {
-    // Abre bottom sheet de conclusão
-    window.abrirConclusaoSheet(id);
-  }
-};
-
-window.togRegistro = (regId) => {
-  const el = document.getElementById(regId);
-  if (!el) return;
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-};
-
-window.abrirConclusaoSheet = (tarefaId) => {
-  // Remove sheet anterior se existir
-  const old = document.getElementById('conclusao-sheet-overlay');
-  if (old) old.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'conclusao-sheet-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;display:flex;align-items:flex-end;';
-  overlay.innerHTML = `
-    <div style="width:100%;background:#161B22;border:0.5px solid #30363D;border-radius:16px 16px 0 0;padding:16px;max-height:85vh;overflow-y:auto;">
-      <div style="width:32px;height:3px;background:#30363D;border-radius:99px;margin:0 auto 16px;"></div>
-      <div style="font-size:14px;font-weight:500;color:#fff;margin-bottom:4px;">Concluir tarefa</div>
-      <div id="conclusao-tarefa-nome" style="font-size:12px;color:#484F58;margin-bottom:16px;">Carregando...</div>
-      <div class="form-group">
-        <label class="form-label">Descrição da conclusão <span style="color:#484F58;">(opcional)</span></label>
-        <textarea class="form-input" id="conclusao-desc" style="height:80px;resize:none;" placeholder="Descreva como foi realizada, observações importantes..."></textarea>
-      </div>
-      <div class="form-group" style="margin-top:10px;">
-        <label class="form-label">Fotos / arquivos <span style="color:#484F58;">(opcional)</span></label>
-        <input type="file" class="form-input" id="conclusao-files" accept="image/*" multiple style="padding:6px;">
-        <div id="conclusao-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px;">
-        <button onclick="window.fecharConclusaoSheet()" style="flex:1;background:transparent;border:0.5px solid #30363D;border-radius:8px;padding:11px;font-size:13px;color:#8B949E;cursor:pointer;">Cancelar</button>
-        <button id="conclusao-btn-confirmar" onclick="window.confirmarConclusao('${tarefaId}')" style="flex:1;background:#1D9E75;border:none;border-radius:8px;padding:11px;font-size:13px;color:#fff;cursor:pointer;font-weight:500;">Confirmar conclusão</button>
-      </div>
-    </div>`;
-
-  overlay.addEventListener('click', e => { if (e.target === overlay) window.fecharConclusaoSheet(); });
-  document.body.appendChild(overlay);
-
-  // Preview de fotos
-  setTimeout(() => {
-    const inp = document.getElementById('conclusao-files');
-    const prev = document.getElementById('conclusao-preview');
-    if (inp && prev) inp.onchange = () => {
-      prev.innerHTML = '';
-      Array.from(inp.files).forEach(f => {
-        prev.innerHTML += `<img src="${URL.createObjectURL(f)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`;
-      });
-    };
-    // Busca nome da tarefa
-    getDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId)).then(d => {
-      const el = document.getElementById('conclusao-tarefa-nome');
-      if (el && d.exists()) el.textContent = d.data().nome;
-    });
-  }, 50);
-};
-
-window.fecharConclusaoSheet = () => {
-  const el = document.getElementById('conclusao-sheet-overlay');
-  if (el) el.remove();
-};
-
-window.confirmarConclusao = async (tarefaId) => {
-  const btn = document.getElementById('conclusao-btn-confirmar');
-  if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
-
-  const desc = document.getElementById('conclusao-desc')?.value.trim() || '';
-  const files = document.getElementById('conclusao-files')?.files || [];
-  const fotos = [];
-  for (const f of Array.from(files)) {
-    try { fotos.push(await uploadToCloudinary(f)); } catch(e) { console.error(e); }
-  }
-
-  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId), {
-    status: 'concluida',
-    data_conclusao: new Date().toISOString().split('T')[0],
-    conclusao_descricao: desc,
-    conclusao_fotos: fotos,
-    conclusao_por: currentUser.email
-  });
-
-  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',tarefaId));
-  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : tarefaId;
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Tarefa concluída', `Tarefa "${tarefaNome}" foi concluída por ${currentUser.email}.`);
-
-  window.fecharConclusaoSheet();
+  const novo = status==='concluida'?'pendente':'concluida';
+  await updateDoc(doc(db,'obras',obraAberta.id,'tarefas',id), {status:novo, data_conclusao:novo==='concluida'?new Date().toISOString().split('T')[0]:null});
   await pgDetalhe();
 };
 
 window.delTarefa = async (id) => {
-  const tarefaDoc = await getDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
-  const tarefaNome = tarefaDoc.exists() ? tarefaDoc.data().nome : id;
   await deleteDoc(doc(db,'obras',obraAberta.id,'tarefas',id));
-  await notificarStand(obraAberta.id, obraAberta.nome, 'Tarefa excluída', `Tarefa "${tarefaNome}" foi removida.`);
   await pgDetalhe();
 };
 
 // ══ FINANCEIRO ══
 async function pgFin() {
   setPage('financeiro');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div>`;
   if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
@@ -1328,7 +846,7 @@ window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await delete
 // ══ MATERIAIS ══
 async function pgMateriais() {
   setPage('materiais');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div><div class="page-sub">Lista de materiais por obra (BOM)</div></div>';
   if (!obras.length) {
@@ -1361,11 +879,6 @@ window.loadMat = async (oid) => {
             'Qtd prevista: ' + (m.quantidade_prevista||'—') + ' ' + (m.unidade||'') +
             ' · Real: ' + (m.quantidade_real||0) + ' ' + (m.unidade||'') +
           '</div>' +
-          (m.responsavel_compra||m.prazo_compra ? '<div style="font-size:11px;color:#484F58;margin-top:2px;">' +
-            (m.responsavel_compra ? '👤 ' + m.responsavel_compra : '') +
-            (m.responsavel_compra && m.prazo_compra ? ' · ' : '') +
-            (m.prazo_compra ? '📅 Comprar até: ' + fmtD(m.prazo_compra) : '') +
-          '</div>' : '') +
         '</div>' +
         (m.valor_unitario ? '<div style="font-size:12px;color:#484F58;">' + fmtR(m.valor_unitario) + '/' + (m.unidade||'un') + '</div>' : '') +
         '<span class="badge ' + (BADGE_MAT[m.status]||'badge-planejamento') + '">' + (STATUS_MAT[m.status]||'Pendente') + '</span>' +
@@ -1375,27 +888,19 @@ window.loadMat = async (oid) => {
     });
   }
   document.getElementById('mat-body').innerHTML =
-    '<div class="sub-header"><span class="sub-title">Lista de materiais</span><button class="btn-primary btn-sm" onclick="window.showMatForm(\'' + oid + '\')">+ Material</button></div>' +
+    '<div class="sub-header"><span class="sub-title">Lista de materiais</span>' +
+    '<div style="display:flex;gap:8px;">' +
+      '<button class="btn-secondary btn-sm" onclick="window.showMatForm(\'' + oid + '\')">+ Individual</button>' +
+      '<button class="btn-primary btn-sm" onclick="window.showMatBatch(\'' + oid + '\')">+ Lista em lote</button>' +
+    '</div></div>' +
     '<div id="mat-form"></div>' +
     '<div id="mat-list">' + list + '</div>';
 };
 
-window.showMatForm = async (oid) => {
-  const UNIDADES = ['un','m²','m³','m','kg','L','saco','cx','rolo'];
-  let opts = UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
+const MAT_UNIDADES = ['un','m²','m³','m','kg','L','saco','cx','rolo'];
 
-  // Busca usuários cadastrados no sistema
-  let userOpts = '<option value="">— Nenhum —</option>';
-  try {
-    // Admin sempre aparece primeiro
-    userOpts += `<option value="${ADMIN_UID_EMAIL}">${ADMIN_UID_EMAIL}</option>`;
-    const usersSnap = await getDocs(collection(db,'usuarios'));
-    usersSnap.docs.forEach(d => {
-      const u = d.data();
-      if (u.email && u.email !== ADMIN_UID_EMAIL) userOpts += `<option value="${u.email}">${u.email}</option>`;
-    });
-  } catch(e) {}
-
+window.showMatForm = (oid) => {
+  const opts = MAT_UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
   document.getElementById('mat-form').innerHTML =
     '<div class="form-wrap" style="margin-bottom:14px;">' +
       '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo material</span><button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button></div>' +
@@ -1403,11 +908,8 @@ window.showMatForm = async (oid) => {
         '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="mat-nome" placeholder="Ex: Tinta látex"></div>' +
         '<div class="form-group"><label class="form-label">Unidade</label><select class="form-input" id="mat-un">' + opts + '</select></div>' +
         '<div class="form-group"><label class="form-label">Qtd prevista</label><input type="number" class="form-input" id="mat-qp" placeholder="0"></div>' +
-        '<div class="form-group"><label class="form-label">Qtd real</label><input type="number" class="form-input" id="mat-qr" placeholder="0"></div>' +
         '<div class="form-group"><label class="form-label">Valor unitário (R$)</label><input type="number" class="form-input" id="mat-vl" placeholder="0,00"></div>' +
-        '<div class="form-group"><label class="form-label">Fornecedor</label><input class="form-input" id="mat-forn" placeholder="Nome"></div>' +
-        '<div class="form-group form-full"><label class="form-label">Responsável pela compra</label><select class="form-input" id="mat-resp">' + userOpts + '</select></div>' +
-        '<div class="form-group form-full"><label class="form-label">Prazo para compra</label><input type="date" class="form-input" id="mat-prazo"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Fornecedor</label><input class="form-input" id="mat-forn" placeholder="Nome"></div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
@@ -1419,65 +921,107 @@ window.showMatForm = async (oid) => {
 window.salvarMat = async (oid) => {
   const nome = document.getElementById('mat-nome').value.trim();
   if (!nome) return alert('Nome obrigatório');
-  const resp = document.getElementById('mat-resp').value.trim();
-  const prazo = document.getElementById('mat-prazo').value;
   await addDoc(sub(oid,'materiais'), {
     nome,
     unidade: document.getElementById('mat-un').value,
     quantidade_prevista: parseFloat(document.getElementById('mat-qp').value)||0,
-    quantidade_real: parseFloat(document.getElementById('mat-qr').value)||0,
+    quantidade_real: 0,
     valor_unitario: parseFloat(document.getElementById('mat-vl').value)||null,
     fornecedor: document.getElementById('mat-forn').value,
-    responsavel_compra: resp,
-    responsavel_email: resp, // email para notificação
-    prazo_compra: prazo,
     status: 'pendente',
     created_at: serverTimestamp()
   });
-  const obraDoc = await getDoc(obraRef(oid));
-  const obraNome = obraDoc.exists() ? obraDoc.data().nome : oid;
-  // Notifica stand se admin editou obra alheia
-  await notificarStand(oid, obraNome, 'Novo material adicionado', `Material "${nome}"${resp?' — responsável: '+resp:''}${prazo?' — prazo: '+fmtD(prazo):''} foi cadastrado.`);
-  // Notifica responsável pela compra
-  if (resp && resp !== currentUser.email) {
-    await addDoc(collection(db,'notificacoes'), {
-      para: resp,
-      de: currentUser.email,
-      obra_id: oid,
-      obra_nome: obraNome,
-      acao: 'Responsável pela compra',
-      detalhe: `Você foi designado para comprar "${nome}"${prazo ? ' — prazo: ' + fmtD(prazo) : ''}.`,
-      lida: false,
+  window.loadMat(oid);
+};
+
+// ── MODO LOTE ──
+let matBatchRows = [];
+
+window.showMatBatch = (oid) => {
+  matBatchRows = [{id:0, nome:'', un:'un', qtd:'', vl:'', forn:''}];
+  window.renderBatch(oid);
+};
+
+window.renderBatch = (oid) => {
+  const opts = MAT_UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
+  let rows = matBatchRows.map((r, i) =>
+    '<div style="display:grid;grid-template-columns:2fr 60px 80px 90px 1fr 28px;gap:6px;margin-bottom:6px;" data-row="' + i + '">' +
+      '<input class="form-input" placeholder="Nome do material *" value="' + r.nome + '" oninput="matBatchRows[' + i + '].nome=this.value" style="font-size:12px;">' +
+      '<select class="form-input" onchange="matBatchRows[' + i + '].un=this.value" style="font-size:12px;">' + MAT_UNIDADES.map(u => '<option value="' + u + '"' + (r.un===u?' selected':'') + '>' + u + '</option>').join('') + '</select>' +
+      '<input class="form-input" type="number" placeholder="Qtd" value="' + r.qtd + '" oninput="matBatchRows[' + i + '].qtd=this.value" style="font-size:12px;">' +
+      '<input class="form-input" type="number" placeholder="R$/un" value="' + r.vl + '" oninput="matBatchRows[' + i + '].vl=this.value" style="font-size:12px;">' +
+      '<input class="form-input" placeholder="Fornecedor" value="' + r.forn + '" oninput="matBatchRows[' + i + '].forn=this.value" style="font-size:12px;">' +
+      '<button onclick="window.removeBatchRow(' + i + ',\'' + oid + '\')" style="background:transparent;border:none;color:#484F58;font-size:18px;cursor:pointer;padding:0;">×</button>' +
+    '</div>'
+  ).join('');
+
+  document.getElementById('mat-form').innerHTML =
+    '<div class="form-wrap" style="margin-bottom:14px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+        '<span style="font-size:14px;font-weight:500;color:#fff;">Lista em lote</span>' +
+        '<button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:2fr 60px 80px 90px 1fr 28px;gap:6px;margin-bottom:8px;">' +
+        '<span style="font-size:10px;color:#484F58;">Material</span>' +
+        '<span style="font-size:10px;color:#484F58;">Un</span>' +
+        '<span style="font-size:10px;color:#484F58;">Qtd</span>' +
+        '<span style="font-size:10px;color:#484F58;">R$/un</span>' +
+        '<span style="font-size:10px;color:#484F58;">Fornecedor</span>' +
+        '<span></span>' +
+      '</div>' +
+      '<div id="batch-rows">' + rows + '</div>' +
+      '<button onclick="window.addBatchRow(\'' + oid + '\')" style="background:transparent;border:0.5px dashed #30363D;border-radius:7px;width:100%;padding:8px;font-size:12px;color:#484F58;cursor:pointer;margin-top:4px;">+ Adicionar linha</button>' +
+      '<div style="background:#1C2333;border-radius:8px;padding:8px 12px;margin-top:12px;font-size:11px;color:#8B949E;">' +
+        matBatchRows.length + ' material' + (matBatchRows.length!==1?'is':'') + ' na lista' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
+        '<button class="btn-primary" id="batch-save-btn" onclick="window.salvarBatch(\'' + oid + '\')">Salvar todos</button>' +
+      '</div>' +
+    '</div>';
+};
+
+window.addBatchRow = (oid) => {
+  matBatchRows.push({id:matBatchRows.length, nome:'', un:'un', qtd:'', vl:'', forn:''});
+  window.renderBatch(oid);
+  // Focus last row
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#batch-rows input');
+    if (inputs.length) inputs[inputs.length - 5]?.focus();
+  }, 50);
+};
+
+window.removeBatchRow = (i, oid) => {
+  if (matBatchRows.length === 1) return;
+  matBatchRows.splice(i, 1);
+  window.renderBatch(oid);
+};
+
+window.salvarBatch = async (oid) => {
+  const validos = matBatchRows.filter(r => r.nome.trim());
+  if (!validos.length) return alert('Preencha ao menos um material');
+  const btn = document.getElementById('batch-save-btn');
+  if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
+  for (const r of validos) {
+    await addDoc(sub(oid,'materiais'), {
+      nome: r.nome.trim(),
+      unidade: r.un,
+      quantidade_prevista: parseFloat(r.qtd)||0,
+      quantidade_real: 0,
+      valor_unitario: parseFloat(r.vl)||null,
+      fornecedor: r.forn,
+      status: 'pendente',
       created_at: serverTimestamp()
     });
   }
+  matBatchRows = [];
   window.loadMat(oid);
 };
 
 window.togMat = async (oid, id, status) => {
   const seq = ['pendente','comprado','entregue'];
   const next = seq[(seq.indexOf(status)+1) % seq.length];
-  const STATUS_LABEL = {pendente:'Pendente', comprado:'Comprado', entregue:'Entregue'};
   await updateDoc(doc(db,'obras',oid,'materiais',id), {status: next});
-  // Notifica responsável sobre mudança de status
-  const matDoc = await getDoc(doc(db,'obras',oid,'materiais',id));
-  if (matDoc.exists()) {
-    const m = matDoc.data();
-    const obraDoc = await getDoc(obraRef(oid));
-    const obraNome = obraDoc.exists() ? obraDoc.data().nome : oid;
-    if (m.responsavel_email && m.responsavel_email !== currentUser.email) {
-      await addDoc(collection(db,'notificacoes'), {
-        para: m.responsavel_email,
-        de: currentUser.email,
-        obra_id: oid,
-        obra_nome: obraNome,
-        acao: 'Status de compra atualizado',
-        detalhe: `Material "${m.nome}" avançou para: ${STATUS_LABEL[next]}.`,
-        lida: false,
-        created_at: serverTimestamp()
-      });
-    }
-  }
   window.loadMat(oid);
 };
 
@@ -1569,7 +1113,7 @@ window.delColab = async (id) => {
 // ══ DIÁRIO DE OBRA ══
 async function pgDiario() {
   setPage('diario');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div><div class="page-sub">Registro diário por obra</div></div>';
   if (!obras.length) {
@@ -1676,7 +1220,7 @@ window.delDiario = async (oid, id) => {
 // ══ DOCUMENTOS ══
 async function pgDocumentos() {
   setPage('documentos');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div><div class="page-sub">Gestão de documentos e registro fotográfico</div></div>';
   if (!obras.length) {
@@ -1780,7 +1324,7 @@ window.delDoc = async (oid, id) => {
 // ══ OPERACIONAL ══
 async function pgOperacional() {
   setPage('operacional');
-  const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div><div class="page-sub">Inspeções de qualidade e não conformidades</div></div>';
   if (!obras.length) {
@@ -1953,7 +1497,7 @@ async function loadNotifications() {
   const notifs = [];
 
   try {
-    const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
 
     for (const o of obras) {
@@ -1990,22 +1534,20 @@ async function loadNotifications() {
     }
   } catch(e) {}
 
-  // Notificações de alterações feitas pelo admin
+  // Notificações de suporte
   try {
-    const adminSnap = await getDocs(query(
+    const nSnap = await getDocs(query(
       collection(db,'notificacoes'),
       where('para','==',currentUser.email),
       where('lida','==',false)
     ));
-    adminSnap.docs.forEach(d => {
+    nSnap.docs.forEach(d => {
       const n = d.data();
-      const isAtu = n.tipo === 'atualizacao_sistema';
-      const isAdminAction = n.acao && !isAtu;
       notifs.push({
-        tipo: isAtu ? 'atualizacao' : (isAdminAction ? 'admin' : 'suporte'),
-        obra: isAtu ? 'Atualização do sistema' : (isAdminAction ? (n.obra_nome || 'Obra') : (n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte')),
-        texto: isAtu ? `🆕 ${n.titulo}` : (isAdminAction ? `🔧 ${n.acao}: ${n.detalhe}` : n.texto),
-        icon: isAtu ? '📢' : (isAdminAction ? '👷' : (n.tipo === 'suporte_resolvido' ? '✅' : '🎫')),
+        tipo:'suporte',
+        obra: n.tipo === 'suporte_resolvido' ? 'Demanda resolvida' : 'Suporte',
+        texto: n.texto,
+        icon: n.tipo === 'suporte_resolvido' ? '✅' : '🎫',
         notifId: d.id
       });
     });
@@ -2043,7 +1585,7 @@ async function initBell() {
   // Load notifications count on startup
   const hoje = new Date().toISOString().split('T')[0];
   try {
-    const snap = { docs: (await getObras()).map(o => ({id:o.id, data:()=>o})) };
+    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
     let count = 0;
     for (const o of obras) {
@@ -2078,15 +1620,16 @@ async function pgAcessos() {
     return;
   }
 
-  const [usuariosSnap, obrasArr] = await Promise.all([
+  const [usuariosSnap, acessosSnap, obrasSnap] = await Promise.all([
     getDocs(collection(db,'usuarios')),
-    getObras()
+    Promise.resolve(null),
+    getDocs(query(obrasCol(), where('uid','==',uid())))
   ]);
 
   const usuarios = usuariosSnap.docs.map(d => ({id:d.id,...d.data()}));
   const stands = usuarios.filter(u => u.perfil === 'stand');
   const starteds = usuarios.filter(u => u.perfil === 'started');
-  const obras = obrasArr;
+  const obras = obrasSnap.docs.map(d => ({id:d.id,...d.data()}));
 
   // Load client tokens
   const acessosPromises = obras.map(o => getDocs(sub(o.id,'acessos')));
@@ -2293,264 +1836,72 @@ const STATUS_BADGE = {
   resolvida: 'background:#1A2820;color:#3FB950'
 };
 
-async function pgSuporte(abaAtiva) {
+async function pgSuporte() {
   setPage('suporte');
   const isAdmin = currentUser.email === ADMIN_EMAIL;
-  if (!abaAtiva) abaAtiva = 'demandas';
 
+  // Load tickets
   let q;
-  if (isAdmin) q = query(suporteCol(), orderBy('created_at', 'desc'));
-  else q = query(suporteCol(), where('user_email', '==', currentUser.email));
-
-  let tickets = [], atualizacoes = [];
-  try {
-    const snap = await getDocs(q);
-    tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
-    tickets.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
-  } catch(e) { console.warn('Suporte tickets error:', e); }
-  try {
-    const atuSnap = await getDocs(query(collection(db,'atualizacoes_sistema'), orderBy('created_at','desc')));
-    atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
-  } catch(e) {
-    // Fallback sem orderBy se índice não existir
-    try {
-      const atuSnap = await getDocs(collection(db,'atualizacoes_sistema'));
-      atualizacoes = atuSnap.docs.map(d => ({id:d.id,...d.data()}));
-      atualizacoes.sort((a,b) => (b.created_at?.seconds||0) - (a.created_at?.seconds||0));
-    } catch(e2) { console.warn('Atualizacoes error:', e2); }
+  if (isAdmin) {
+    q = query(suporteCol(), orderBy('created_at', 'desc'));
+  } else {
+    q = query(suporteCol(), where('user_email', '==', currentUser.email), orderBy('created_at', 'desc'));
   }
-  const pendentes = tickets.filter(t => t.status !== 'resolvida').length;
 
-  const ATU_TIPO_BADGE = {
-    funcionalidade: 'background:#0F6E56;color:#9FE1CB',
-    correcao: 'background:#3C3489;color:#CECBF6',
-    informativo: 'background:#30363D;color:#8B949E'
-  };
-  const ATU_TIPO_LABEL = {
-    funcionalidade: 'Nova funcionalidade',
-    correcao: 'Correção',
-    informativo: 'Informativo'
-  };
-  const ATU_DOT_COLOR = { funcionalidade:'#1D9E75', correcao:'#3C3489', informativo:'#30363D' };
+  const snap = await getDocs(q);
+  const tickets = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const abertas = tickets.filter(t => t.status !== 'resolvida').length;
 
-  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
+  let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
     '<div><div class="page-title">Suporte</div><div class="page-sub">' +
-      (isAdmin ? 'Painel administrativo' : 'Suas demandas de suporte') +
+      (isAdmin ? 'Painel administrativo — todas as demandas' : 'Suas demandas de suporte') +
     '</div></div>' +
     (!isAdmin ? '<button class="btn-primary" onclick="window.showTicketForm()">+ Nova demanda</button>' : '') +
   '</div>';
 
-  // ── ABAS (só admin) ──
-  if (isAdmin) {
-    html += '<div style="display:flex;gap:0;border-bottom:0.5px solid #21262D;margin-bottom:20px;">' +
-      '<div onclick="window.pgSuporte(\'demandas\')" style="flex:1;padding:10px 0;text-align:center;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (abaAtiva==='demandas'?'#1D9E75':'transparent') + ';color:' + (abaAtiva==='demandas'?'#fff':'#484F58') + ';margin-bottom:-0.5px;">' +
-        'Demandas' + (pendentes ? ' <span style="display:inline-block;background:#993C1D;color:#F5C4B3;font-size:10px;padding:1px 6px;border-radius:99px;vertical-align:middle;">' + pendentes + '</span>' : '') +
-      '</div>' +
-      '<div onclick="window.pgSuporte(\'atualizacoes\')" style="flex:1;padding:10px 0;text-align:center;font-size:13px;cursor:pointer;border-bottom:2px solid ' + (abaAtiva==='atualizacoes'?'#1D9E75':'transparent') + ';color:' + (abaAtiva==='atualizacoes'?'#fff':'#484F58') + ';margin-bottom:-0.5px;">' +
-        'Atualizações' +
-      '</div>' +
+  if (isAdmin && abertas > 0) {
+    html += '<div style="background:#2A1C0A;border:0.5px solid #3D2A0A;border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">' +
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#8C603E" stroke-width="1.2" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="#8C603E" stroke-width="1.2"/><circle cx="8" cy="11" r="0.7" fill="#8C603E"/></svg>' +
+      '<span style="font-size:13px;color:#8C603E;">' + abertas + ' demanda' + (abertas!==1?'s':'') + ' pendente' + (abertas!==1?'s':'') + ' aguardando sua atenção</span>' +
     '</div>';
   }
 
-  // ══ ABA DEMANDAS ══
-  if (!isAdmin || abaAtiva === 'demandas') {
+  html += '<div id="ticket-form-wrap"></div>';
 
-    // Bloco notificações de atualização não lidas (só usuários)
-    if (!isAdmin) {
-      const nSnap = await getDocs(query(
-        collection(db,'notificacoes'),
-        where('para','==',currentUser.email),
-        where('tipo','==','atualizacao_sistema'),
-        where('lida','==',false)
-      ));
-      const naoLidas = nSnap.docs.map(d => ({id:d.id,...d.data()}));
-      if (naoLidas.length) {
-        html += '<div class="card" style="margin-bottom:16px;border-color:#1D9E75;">' +
-          '<div style="font-size:12px;font-weight:500;color:#9FE1CB;margin-bottom:8px;">' + naoLidas.length + ' atualização' + (naoLidas.length>1?'s':'') + ' não lida' + (naoLidas.length>1?'s':'') + '</div>';
-        naoLidas.forEach(n => {
-          html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid #21262D;">' +
-            '<div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;flex-shrink:0;margin-top:4px;"></div>' +
-            '<div style="flex:1;"><div style="font-size:13px;color:#fff;">' + n.titulo + '</div>' +
-            '<div style="font-size:11px;color:#484F58;margin-top:2px;">' + (ATU_TIPO_LABEL[n.atu_tipo]||'') + '</div></div>' +
-            '<button onclick="window.marcarLida(\'' + n.id + '\')" style="background:#21262D;border:0.5px solid #30363D;border-radius:6px;padding:4px 10px;font-size:11px;color:#8B949E;cursor:pointer;flex-shrink:0;">Marcar lida</button>' +
-          '</div>';
-        });
-        html += '</div>';
-      }
-    }
-
-    // Filtros (só admin)
-    if (isAdmin) {
-      const filtros = [{k:'todas',l:'Todas'},{k:'aberta',l:'Abertas'},{k:'analise',l:'Em análise'},{k:'resolvida',l:'Resolvidas'}];
-      html += '<div id="filtro-wrap" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;">';
-      filtros.forEach(f => {
-        html += '<div onclick="window.filtrarTickets(\'' + f.k + '\')" data-filtro="' + f.k + '" style="background:#161B22;border:0.5px solid #21262D;border-radius:99px;padding:5px 14px;font-size:12px;cursor:pointer;white-space:nowrap;color:' + (f.k==='todas'?'#fff':'#484F58') + ';border-color:' + (f.k==='todas'?'#30363D':'#21262D') + ';">' + f.l + '</div>';
-      });
-      html += '</div>';
-    }
-
-    html += '<div id="ticket-form-wrap"></div><div id="tickets-list">';
-
-    const renderTickets = (lista) => {
-      if (!lista.length) return '<div class="card"><div class="empty-state">' +
-        (isAdmin ? 'Nenhuma demanda neste filtro' : 'Você não tem demandas abertas') + '</div></div>';
-      return lista.map(t => {
-        const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-        const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
-        const isResolvida = t.status === 'resolvida';
-        return '<div class="card" style="padding:14px 16px;margin-bottom:8px;' + (isResolvida?'opacity:0.55;':'') + '">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">' +
-                '<span style="font-size:13px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
-              '</div>' +
-              '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">' +
-                '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
-                '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
-              '</div>' +
-              (isAdmin ? '<div style="font-size:11px;color:#484F58;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
-            '</div>' +
-            (!isResolvida && isAdmin ? '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">' +
-              (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm" style="font-size:11px;padding:4px 10px;">Em análise</button>' : '') +
-              '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:4px 10px;font-size:11px;color:#3FB950;cursor:pointer;">Resolver</button>' +
-            '</div>' : '') +
-          '</div>' +
-          '<div style="font-size:12px;color:#8B949E;line-height:1.6;">' + t.descricao + '</div>' +
-          (t.resposta ? '<div style="background:#0D1117;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
-            '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
-            '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
-          '</div>' : '') +
-        '</div>';
-      }).join('');
-    };
-
-    html += renderTickets(tickets) + '</div>';
-
-    // Guarda tickets em variável global para filtro client-side
-    window._suporteTickets = tickets;
-    window._renderTickets = renderTickets;
-  }
-
-  // ══ ABA ATUALIZAÇÕES ══
-  if (isAdmin && abaAtiva === 'atualizacoes') {
-    html += '<div style="font-size:11px;font-weight:500;color:#484F58;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Publicar nova atualização</div>' +
-      '<div class="form-grid" style="margin-bottom:12px;">' +
-        '<div class="form-group form-full"><label class="form-label">Título *</label><input class="form-input" id="atu-titulo" placeholder="Ex: v1.4 — Módulo financeiro"></div>' +
-        '<div class="form-group"><label class="form-label">Tipo</label>' +
-          '<select class="form-input" id="atu-tipo">' +
-            '<option value="funcionalidade">Nova funcionalidade</option>' +
-            '<option value="correcao">Correção</option>' +
-            '<option value="informativo">Informativo</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="form-group form-full"><label class="form-label">Descrição *</label><textarea class="form-input" id="atu-desc" style="height:80px;resize:none;" placeholder="Descreva o que mudou..."></textarea></div>' +
-      '</div>' +
-      '<div style="margin-bottom:20px;">' +
-        '<button class="btn-primary" style="width:100%;" onclick="window.publicarAtualizacao()">Publicar para todos os usuários</button>' +
-      '</div>';
-
-    if (atualizacoes.length) {
-      html += '<div style="font-size:11px;font-weight:500;color:#484F58;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Histórico</div>';
-      atualizacoes.forEach(a => {
-        const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #21262D;">' +
-          '<div style="width:8px;height:8px;border-radius:50%;background:' + (ATU_DOT_COLOR[a.tipo]||'#30363D') + ';flex-shrink:0;margin-top:5px;"></div>' +
+  if (!tickets.length) {
+    html += '<div class="card"><div class="empty-state">' +
+      (isAdmin ? 'Nenhuma demanda aberta' : 'Você não tem demandas abertas<br><small style="color:#30363D;margin-top:6px;display:block;">Clique em "+ Nova demanda" para reportar um problema ou sugerir uma melhoria</small>') +
+    '</div></div>';
+  } else {
+    tickets.forEach(t => {
+      const dataFmt = t.created_at?.toDate ? t.created_at.toDate().toLocaleDateString('pt-BR') : '—';
+      const dataRes = t.resolved_at?.toDate ? t.resolved_at.toDate().toLocaleDateString('pt-BR') : null;
+      html += '<div class="card" style="padding:16px 18px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">' +
           '<div style="flex:1;min-width:0;">' +
-            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
-              '<div>' +
-                '<span style="display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;margin-bottom:3px;' + (ATU_TIPO_BADGE[a.tipo]||ATU_TIPO_BADGE.informativo) + '">' + (ATU_TIPO_LABEL[a.tipo]||a.tipo) + '</span>' +
-                '<div style="font-size:13px;font-weight:500;color:#fff;">' + a.titulo + '</div>' +
-                '<div style="font-size:11px;color:#484F58;margin-top:1px;">' + dataFmt + '</div>' +
-              '</div>' +
-              '<button onclick="window.delAtualizacao(\'' + a.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:11px;cursor:pointer;flex-shrink:0;padding-top:2px;">Excluir</button>' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+              '<span style="font-size:14px;font-weight:500;color:#fff;">' + t.titulo + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (TIPO_BADGE[t.tipo]||'') + '">' + (TIPO_LABELS[t.tipo]||t.tipo) + '</span>' +
+              '<span style="font-size:10px;padding:2px 8px;border-radius:999px;' + (STATUS_BADGE[t.status]||'') + '">' + (STATUS_LABELS[t.status]||t.status) + '</span>' +
             '</div>' +
-            '<div style="font-size:12px;color:#8B949E;margin-top:4px;line-height:1.5;">' + a.descricao + '</div>' +
+            (isAdmin ? '<div style="font-size:11px;color:#484F58;margin-bottom:4px;">Por: ' + t.user_email + ' · ' + dataFmt + '</div>' : '<div style="font-size:11px;color:#484F58;">Aberta em ' + dataFmt + '</div>') +
           '</div>' +
-        '</div>';
-      });
-    } else {
-      html += '<div class="card"><div class="empty-state">Nenhuma atualização publicada ainda</div></div>';
-    }
-  }
-
-  // Histórico de atualizações para usuários não admin
-  if (!isAdmin && atualizacoes.length) {
-    html += '<div style="font-size:13px;font-weight:500;color:#fff;margin-top:20px;margin-bottom:12px;">Histórico de atualizações</div>';
-    atualizacoes.forEach(a => {
-      const dataFmt = a.created_at?.toDate ? a.created_at.toDate().toLocaleDateString('pt-BR') : '—';
-      html += '<div class="card" style="margin-bottom:8px;">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">' +
-          '<div>' +
-            '<span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;margin-bottom:4px;' + (ATU_TIPO_BADGE[a.tipo]||ATU_TIPO_BADGE.informativo) + '">' + (ATU_TIPO_LABEL[a.tipo]||a.tipo) + '</span>' +
-            '<div style="font-size:13px;font-weight:500;color:#fff;">' + a.titulo + '</div>' +
-          '</div>' +
-          '<span style="font-size:11px;color:#484F58;flex-shrink:0;">' + dataFmt + '</span>' +
+          (isAdmin && t.status !== 'resolvida' ? '<div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px;">' +
+            (t.status === 'aberta' ? '<button onclick="window.avancarTicket(\'' + t.id + '\',\'analise\')" class="btn-secondary btn-sm">Em análise</button>' : '') +
+            '<button onclick="window.resolverTicket(\'' + t.id + '\')" style="background:#1A2820;border:0.5px solid #2E4030;border-radius:7px;padding:6px 12px;font-size:12px;color:#3FB950;cursor:pointer;">Resolver</button>' +
+          '</div>' : '') +
         '</div>' +
-        '<div style="font-size:12px;color:#8B949E;line-height:1.5;">' + a.descricao + '</div>' +
+        '<div style="font-size:13px;color:#8B949E;line-height:1.6;margin-bottom:' + (t.resposta||dataRes?'10':'0') + 'px;">' + t.descricao + '</div>' +
+        (t.resposta ? '<div style="background:#161B22;border:0.5px solid #21262D;border-radius:8px;padding:10px 14px;margin-top:8px;">' +
+          '<div style="font-size:10px;color:#484F58;margin-bottom:4px;">Resposta do suporte' + (dataRes?' · '+dataRes:'') + '</div>' +
+          '<div style="font-size:13px;color:#fff;">' + t.resposta + '</div>' +
+        '</div>' : '') +
       '</div>';
     });
   }
 
   document.getElementById('content').innerHTML = html;
-  window._suporteTickets = tickets;
 }
-
-window.pgSuporte = pgSuporte;
-
-window.filtrarTickets = (filtro) => {
-  // Atualiza estilo dos pills
-  document.querySelectorAll('[data-filtro]').forEach(el => {
-    const ativo = el.dataset.filtro === filtro;
-    el.style.color = ativo ? '#fff' : '#484F58';
-    el.style.borderColor = ativo ? '#30363D' : '#21262D';
-  });
-  const lista = filtro === 'todas'
-    ? window._suporteTickets
-    : window._suporteTickets.filter(t => t.status === filtro);
-  const el = document.getElementById('tickets-list');
-  if (el && window._renderTickets) el.innerHTML = window._renderTickets(lista);
-};
-
-window.publicarAtualizacao = async () => {
-  const titulo = document.getElementById('atu-titulo').value.trim();
-  const desc = document.getElementById('atu-desc').value.trim();
-  if (!titulo) return alert('Título obrigatório');
-  if (!desc) return alert('Descrição obrigatória');
-  const tipo = document.getElementById('atu-tipo').value;
-
-  // Grava a atualização
-  await addDoc(collection(db,'atualizacoes_sistema'), {
-    titulo, descricao: desc, tipo,
-    criado_por: currentUser.email,
-    created_at: serverTimestamp()
-  });
-
-  // Notifica todos os usuários cadastrados (stands + starteds)
-  const usersSnap = await getDocs(collection(db,'usuarios'));
-  const notifPromises = usersSnap.docs.map(d => {
-    const email = d.data().email;
-    if (!email) return Promise.resolve();
-    return addDoc(collection(db,'notificacoes'), {
-      para: email,
-      de: currentUser.email,
-      tipo: 'atualizacao_sistema',
-      atu_tipo: tipo,
-      titulo,
-      detalhe: desc,
-      lida: false,
-      created_at: serverTimestamp()
-    });
-  });
-  await Promise.all(notifPromises);
-
-  await pgSuporte('atualizacoes');
-};
-
-window.delAtualizacao = async (id) => {
-  if (!confirm('Excluir esta atualização?')) return;
-  await deleteDoc(doc(db,'atualizacoes_sistema',id));
-  await pgSuporte('atualizacoes');
-};
 
 window.showTicketForm = () => {
   document.getElementById('ticket-form-wrap').innerHTML =
@@ -2678,19 +2029,35 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item => {
 
 
 // ── MOBILE LAYOUT FIX ──
-// Apenas ajusta altura do content para evitar conteúdo atrás do bottom nav.
-// O bottom nav é controlado 100% pelo CSS (@media), não pelo JS.
 function applyMobileLayout() {
   const isMobile = window.innerWidth <= 768;
+  const h = window.innerHeight;
+  const bn = document.getElementById('bottom-nav');
+  const app = document.getElementById('app');
+  const ml = document.getElementById('main-layout');
+  const bw = document.querySelector('.body-wrap');
   const ct = document.getElementById('content');
-  if (!ct) return;
+
   if (isMobile) {
-    ct.style.paddingBottom = '72px';
-    ct.style.overflowY = 'auto';
-    ct.style.webkitOverflowScrolling = 'touch';
+    document.body.style.cssText = 'margin:0;padding:0;overflow:hidden;width:100%;height:'+h+'px;';
+    if (app) app.style.cssText = 'width:100%;height:'+h+'px;display:flex;flex-direction:column;background:#0D1117;color:#fff;overflow:hidden;';
+    if (ml) {
+      const topbarH = 48;
+      const navH = 56;
+      const bodyH = h - topbarH - navH;
+      ml.style.display = 'flex';
+      ml.style.cssText = 'display:flex;flex-direction:column;width:100%;height:'+(h-navH)+'px;overflow:hidden;';
+      if (bw) bw.style.cssText = 'display:flex;flex:1;height:'+bodyH+'px;overflow:hidden;';
+      if (ct) ct.style.cssText = 'flex:1;height:'+bodyH+'px;overflow-y:auto;padding:16px 14px 16px;-webkit-overflow-scrolling:touch;';
+    }
+    if (bn) { bn.style.display = 'flex'; bn.style.flexDirection = 'row'; bn.style.alignItems = 'center'; }
   } else {
-    ct.style.paddingBottom = '';
-    ct.style.overflowY = '';
+    document.body.style.cssText = '';
+    if (app) app.style.cssText = '';
+    if (ml) ml.style.cssText = '';
+    if (bw) bw.style.cssText = '';
+    if (ct) ct.style.cssText = '';
+    if (bn) bn.style.display = 'none';
   }
 }
 applyMobileLayout();
