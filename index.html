@@ -771,23 +771,60 @@ window.delTarefa = async (id) => {
 };
 
 // ══ FINANCEIRO ══
+
+// ── HELPER: header de obra com última lembrada (Opção C) ──
+function obraHeader(obras, obraId, moduloId, loadFn, titulo, sub) {
+  const opts = obras.map(o =>
+    '<option value="' + o.id + '"' + (o.id===obraId?' selected':'') + '>' + o.nome + '</option>'
+  ).join('');
+  const obra = obras.find(o => o.id === obraId);
+  const STATUS_CLS = {andamento:'badge-andamento', planejamento:'badge-planejamento', pausada:'badge-pausada', concluida:'badge-concluida'};
+  return (
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;">' +
+      '<div>' +
+        '<div class="page-title">' + titulo + '</div>' +
+        '<div class="page-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          (obra
+            ? '<span>' + obra.nome + '</span>' +
+              (obra.status ? '<span class="badge ' + (STATUS_CLS[obra.status]||'badge-planejamento') + '" style="font-size:10px;">' + obra.status + '</span>' : '')
+            : '<span>' + sub + '</span>'
+          ) +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<select class="form-input" id="' + moduloId + '-sel" onchange="window[\'' + loadFn + '\'](this.value)" style="font-size:12px;padding:5px 10px;height:32px;max-width:200px;">' +
+          '<option value="">Trocar obra...</option>' +
+          opts +
+        '</select>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function saveLastObra(obraId) {
+  try { localStorage.setItem('lastObraId', obraId); } catch(e) {}
+}
+function getLastObra(obras) {
+  try {
+    const id = localStorage.getItem('lastObraId');
+    if (id && obras.find(o => o.id === id)) return id;
+  } catch(e) {}
+  return obras.length === 1 ? obras[0].id : null;
+}
+
 async function pgFin() {
   setPage('financeiro');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento e contas por obra</div></div>`;
-  if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
-  else {
-    html += `<div class="form-group" style="max-width:400px;margin-bottom:24px;">
-      <label class="form-label">Selecione a obra</label>
-      <select class="form-input" id="fin-sel" onchange="window.loadFin(this.value)">
-        <option value="">— Selecionar obra —</option>
-        ${obras.map(o=>`<option value="${o.id}">${o.nome}</option>`).join('')}
-      </select>
-    </div>
-    <div id="fin-body"></div>`;
+  if (!obras.length) {
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div></div><div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    return;
   }
+  const obraId = getLastObra(obras);
+  let html = obraHeader(obras, obraId, 'fin', 'loadFin', 'Financeiro', 'Orçamento e contas por obra');
+  html += '<div id="fin-body"></div>';
   document.getElementById('content').innerHTML = html;
+  if (obraId) window.loadFin(obraId);
 }
 
 // Estado das abas e filtros financeiro
@@ -796,6 +833,7 @@ let finFiltro = 'todas';
 
 window.loadFin = async (obraId) => {
   if (!obraId) { document.getElementById('fin-body').innerHTML=''; return; }
+  saveLastObra(obraId);
   document.getElementById('fin-body').innerHTML = '<div class="loading">Carregando...</div>';
 
   const [os,cs] = await Promise.all([
@@ -1026,19 +1064,20 @@ async function pgMateriais() {
   setPage('materiais');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div><div class="page-sub">Lista de materiais por obra (BOM)</div></div>';
   if (!obras.length) {
-    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
-  } else {
-    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="mat-sel" onchange="window.loadMat(this.value)"><option value="">— Selecionar obra —</option>';
-    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
-    html += '</select></div><div id="mat-body"></div>';
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div></div><div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    return;
   }
+  const obraId = getLastObra(obras);
+  let html = obraHeader(obras, obraId, 'mat', 'loadMat', 'Materiais', 'Lista de materiais por obra');
+  html += '<div id="mat-body"></div>';
   document.getElementById('content').innerHTML = html;
+  if (obraId) window.loadMat(obraId);
 }
 
 window.loadMat = async (oid) => {
   if (!oid) { document.getElementById('mat-body').innerHTML = ''; return; }
+  saveLastObra(oid);
   document.getElementById('mat-body').innerHTML = '<div class="loading">Carregando...</div>';
   const snap = await getDocs(sub(oid,'materiais'));
   const mats = snap.docs.map(d => ({id:d.id,...d.data()}));
@@ -1389,8 +1428,14 @@ window.delMat = async (oid, id) => {
 // ══ EQUIPE ══
 async function pgEquipe() {
   setPage('equipe');
-  const snap = await getDocs((currentRole === 'admin' ? query(collection(db,'colaboradores')) : query(collection(db,'colaboradores'), where('uid','==',uid()))));
-  const colab = snap.docs.map(d => ({id:d.id,...d.data()}));
+  let colab = [];
+  try {
+    const snap = await getDocs((currentRole === 'admin' ? query(collection(db,'colaboradores')) : query(collection(db,'colaboradores'), where('uid','==',uid()))));
+    colab = snap.docs.map(d => ({id:d.id,...d.data()}));
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Equipe</div></div><div class="card"><div class="empty-state">Erro ao carregar colaboradores. Verifique as regras do Firestore.</div></div>';
+    return;
+  }
   let html = '<div style="display:flex;justify-content:space-between;margin-bottom:20px;">' +
     '<div><div class="page-title">Equipe</div><div class="page-sub">' + colab.length + ' colaborador' + (colab.length!==1?'es':'') + ' cadastrado' + (colab.length!==1?'s':'') + '</div></div>' +
     '<button class="btn-primary" onclick="window.showColabForm()">+ Colaborador</button>' +
@@ -1470,19 +1515,20 @@ async function pgDiario() {
   setPage('diario');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div><div class="page-sub">Registro diário por obra</div></div>';
   if (!obras.length) {
-    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
-  } else {
-    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="dir-sel" onchange="window.loadDiario(this.value)"><option value="">— Selecionar obra —</option>';
-    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
-    html += '</select></div><div id="dir-body"></div>';
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div></div><div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    return;
   }
+  const obraId = getLastObra(obras);
+  let html = obraHeader(obras, obraId, 'dir', 'loadDiario', 'Diário de obra', 'Registro diário por obra');
+  html += '<div id="dir-body"></div>';
   document.getElementById('content').innerHTML = html;
+  if (obraId) window.loadDiario(obraId);
 }
 
 window.loadDiario = async (oid) => {
   if (!oid) { document.getElementById('dir-body').innerHTML = ''; return; }
+  saveLastObra(oid);
   document.getElementById('dir-body').innerHTML = '<div class="loading">Carregando...</div>';
   const snap = await getDocs(query(sub(oid,'diario'), orderBy('data','desc')));
   const registros = snap.docs.map(d => ({id:d.id,...d.data()}));
@@ -1577,19 +1623,20 @@ async function pgDocumentos() {
   setPage('documentos');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div><div class="page-sub">Gestão de documentos e registro fotográfico</div></div>';
   if (!obras.length) {
-    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
-  } else {
-    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="doc-sel" onchange="window.loadDocs(this.value)"><option value="">— Selecionar obra —</option>';
-    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
-    html += '</select></div><div id="doc-body"></div>';
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div></div><div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    return;
   }
+  const obraId = getLastObra(obras);
+  let html = obraHeader(obras, obraId, 'doc', 'loadDocs', 'Documentos', 'Gestão de documentos e arquivos');
+  html += '<div id="doc-body"></div>';
   document.getElementById('content').innerHTML = html;
+  if (obraId) window.loadDocs(obraId);
 }
 
 window.loadDocs = async (oid) => {
   if (!oid) { document.getElementById('doc-body').innerHTML = ''; return; }
+  saveLastObra(oid);
   document.getElementById('doc-body').innerHTML = '<div class="loading">Carregando...</div>';
   const snap = await getDocs(sub(oid,'documentos'));
   const docs = snap.docs.map(d => ({id:d.id,...d.data()}));
@@ -1681,19 +1728,20 @@ async function pgOperacional() {
   setPage('operacional');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div><div class="page-sub">Inspeções de qualidade e não conformidades</div></div>';
   if (!obras.length) {
-    html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
-  } else {
-    html += '<div class="form-group" style="max-width:400px;margin-bottom:24px;"><label class="form-label">Selecione a obra</label><select class="form-input" id="op-sel" onchange="window.loadOp(this.value)"><option value="">— Selecionar obra —</option>';
-    obras.forEach(o => { html += '<option value="' + o.id + '">' + o.nome + '</option>'; });
-    html += '</select></div><div id="op-body"></div>';
+    document.getElementById('content').innerHTML = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div></div><div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
+    return;
   }
+  const obraId = getLastObra(obras);
+  let html = obraHeader(obras, obraId, 'op', 'loadOp', 'Operacional', 'Inspeções e não conformidades');
+  html += '<div id="op-body"></div>';
   document.getElementById('content').innerHTML = html;
+  if (obraId) window.loadOp(obraId);
 }
 
 window.loadOp = async (oid) => {
   if (!oid) { document.getElementById('op-body').innerHTML = ''; return; }
+  saveLastObra(oid);
   document.getElementById('op-body').innerHTML = '<div class="loading">Carregando...</div>';
   const [insSnap, ncSnap] = await Promise.all([
     getDocs(sub(oid,'inspecoes')),
