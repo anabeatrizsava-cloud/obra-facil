@@ -11,17 +11,14 @@
 <title>ObraFácil</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-#app{
-  background:#0D1117;
-  color:#fff;
-}
+html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;background:#0D1117;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;background:#0D1117;color:#fff;}
 #login-screen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#0D1117;}
 .login-logo{width:10px;height:10px;border-radius:50%;background:#30363D;}
 .login-title{font-size:24px;font-weight:500;color:#fff;}
 .login-sub{font-size:14px;color:#484F58;}
 .btn-google{background:#21262D;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;margin-top:8px;}
-#main-layout{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;}
+#main-layout{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;background:#0D1117;color:#fff;}
 .topbar{background:#161B22;border-bottom:0.5px solid #21262D;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:100;}
 .topbar-logo{display:flex;align-items:center;gap:8px;}
 .topbar-dot{width:8px;height:8px;border-radius:50%;background:#30363D;}
@@ -414,6 +411,19 @@ onAuthStateChanged(auth, async user => {
     applyRoleToSidebar();
     renderPage('dashboard');
     setTimeout(initBell, 2000);
+    // DEBUG TEMPORÁRIO - remover após confirmar layout
+    if (window.innerWidth <= 768) {
+      const dbg = document.createElement('div');
+      dbg.style.cssText = 'position:fixed;top:50px;left:0;right:0;background:rgba(255,0,0,0.8);color:#fff;font-size:11px;padding:6px 10px;z-index:9999;font-family:monospace;';
+      const ml = document.getElementById('main-layout');
+      const ct = document.getElementById('content');
+      const bn = document.getElementById('bottom-nav');
+      dbg.textContent = 'viewport:' + window.innerWidth + 'x' + window.innerHeight +
+        ' | app:' + ml?.offsetHeight + 
+        ' | content:' + ct?.offsetHeight +
+        ' | nav:' + bn?.offsetHeight;
+      document.body.appendChild(dbg);
+    }
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('main-layout').style.display = 'none';
