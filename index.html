@@ -981,10 +981,26 @@ window.renderBatch = (oid) => {
     '</div>';
 };
 
+function syncBatchFromDOM() {
+  // Read current values from DOM inputs BEFORE re-rendering
+  const rowEls = document.querySelectorAll('#batch-rows [data-row]');
+  rowEls.forEach(el => {
+    const i = parseInt(el.dataset.row);
+    if (!matBatchRows[i]) return;
+    const inputs = el.querySelectorAll('input');
+    const sel = el.querySelector('select');
+    if (inputs[0]) matBatchRows[i].nome = inputs[0].value;
+    if (sel)       matBatchRows[i].un   = sel.value;
+    if (inputs[1]) matBatchRows[i].qtd  = inputs[1].value;
+    if (inputs[2]) matBatchRows[i].vl   = inputs[2].value;
+    if (inputs[3]) matBatchRows[i].forn = inputs[3].value;
+  });
+}
+
 window.addBatchRow = (oid) => {
+  syncBatchFromDOM();
   matBatchRows.push({id:matBatchRows.length, nome:'', un:'un', qtd:'', vl:'', forn:''});
   window.renderBatch(oid);
-  // Focus last row
   setTimeout(() => {
     const inputs = document.querySelectorAll('#batch-rows input');
     if (inputs.length) inputs[inputs.length - 5]?.focus();
@@ -993,11 +1009,13 @@ window.addBatchRow = (oid) => {
 
 window.removeBatchRow = (i, oid) => {
   if (matBatchRows.length === 1) return;
+  syncBatchFromDOM();
   matBatchRows.splice(i, 1);
   window.renderBatch(oid);
 };
 
 window.salvarBatch = async (oid) => {
+  syncBatchFromDOM();
   const validos = matBatchRows.filter(r => r.nome.trim());
   if (!validos.length) return alert('Preencha ao menos um material');
   const btn = document.getElementById('batch-save-btn');
