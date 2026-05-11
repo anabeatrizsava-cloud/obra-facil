@@ -1109,12 +1109,12 @@ window.loadFin = async (obraId) => {
   // Totais para os stat cards
   const totOrc   = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
   const totReal  = orcs.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
-  const totPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totRec   = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totPago  = contas.filter(c=>c.tipo==='pagar'&&(c.status==='pago'||c.status==='recebido')).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totRecebido = contas.filter(c=>c.tipo==='receber'&&c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
   const extras   = contas.filter(c=>c.extra===true);
   const totExtra = extras.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totPagar = contas.filter(c=>c.tipo==='pagar'&&!c.extra).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totRec   = contas.filter(c=>c.tipo==='receber'&&!c.extra).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totPago  = contas.filter(c=>c.tipo==='pagar'&&!c.extra&&(c.status==='pago'||c.status==='recebido')).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totRecebido = contas.filter(c=>c.tipo==='receber'&&!c.extra&&c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
 
   // Data de hoje para calcular vencimento
   const hoje = new Date(); hoje.setHours(0,0,0,0);
