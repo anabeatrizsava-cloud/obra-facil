@@ -26,7 +26,7 @@ html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;font-family:
 .login-title{font-size:24px;font-weight:500;color:#fff;}
 .login-sub{font-size:14px;color:#484F58;}
 .btn-google{background:#21262D;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;margin-top:8px;}
-#main-layout{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;height:100%;}
+#main-layout{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 .topbar{background:#161B22;border-bottom:0.5px solid #21262D;padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:100;}
 .topbar-logo{display:flex;align-items:center;gap:8px;}
 .topbar-dot{width:8px;height:8px;border-radius:50%;background:#30363D;}
@@ -34,7 +34,7 @@ html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;font-family:
 .topbar-right{display:flex;align-items:center;gap:12px;}
 .topbar-email{font-size:12px;color:#484F58;}
 .topbar-avatar{width:28px;height:28px;border-radius:50%;background:#30363D;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#fff;cursor:pointer;}
-.body-wrap{display:flex;flex:1;min-height:0;overflow:hidden;height:100%;}
+.body-wrap{display:flex;flex:1;min-height:0;overflow:hidden;}
 .sidebar{width:52px;min-width:52px;background:#0D1117;border-right:0.5px solid #21262D;overflow:visible;flex-shrink:0;padding:8px 0;position:relative;z-index:50;}
 .nav-section{font-size:10px;color:#484F58;padding:12px 16px 4px;letter-spacing:0.06em;text-transform:uppercase;}
 .nav-item{display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;font-size:13px;color:#484F58;cursor:pointer;border-radius:8px;position:relative;}
@@ -409,7 +409,7 @@ onAuthStateChanged(auth, async user => {
     currentRole = roleData.role;
     currentPerms = roleData.modulos;
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-layout').style.display = '';
+    document.getElementById('main-layout').style.display = 'flex';
     // Apply mobile layout multiple times to ensure DOM is ready
     applyMobileLayout();
     setTimeout(applyMobileLayout, 100);
@@ -950,36 +950,151 @@ window.loadMat = async (oid) => {
   const mats = snap.docs.map(d => ({id:d.id,...d.data()}));
   const STATUS_MAT = {pendente:'Pendente', comprado:'Comprado', entregue:'Entregue'};
   const BADGE_MAT = {pendente:'badge-planejamento', comprado:'badge-pausada', entregue:'badge-andamento'};
+
+  // Agrupar por lista
+  const grupos = {};
+  mats.forEach(m => {
+    const g = (m.lista||'Geral').toUpperCase().trim();
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(m);
+  });
+
   let list = '';
   if (!mats.length) {
     list = '<div class="card"><div class="empty-state">Nenhum material cadastrado</div></div>';
   } else {
-    mats.forEach(m => {
-      list += '<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">' +
-        '<div style="flex:1;">' +
-          '<div style="font-size:13px;font-weight:500;color:#fff;">' + m.nome + '</div>' +
-          '<div style="font-size:11px;color:#484F58;margin-top:2px;">' +
-            (m.fornecedor ? 'Fornecedor: ' + m.fornecedor + ' · ' : '') +
-            'Qtd prevista: ' + (m.quantidade_prevista||'—') + ' ' + (m.unidade||'') +
-            ' · Real: ' + (m.quantidade_real||0) + ' ' + (m.unidade||'') +
+    Object.keys(grupos).sort().forEach(g => {
+      const itens = grupos[g];
+      list += '<div style="margin-bottom:18px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:11px;font-weight:600;color:#8B949E;letter-spacing:0.08em;">📦 ' + g + '</span>' +
+            '<span style="font-size:10px;color:#484F58;">' + itens.length + ' item' + (itens.length!==1?'s':'') + '</span>' +
           '</div>' +
-        '</div>' +
-        (m.valor_unitario ? '<div style="font-size:12px;color:#484F58;">' + fmtR(m.valor_unitario) + '/' + (m.unidade||'un') + '</div>' : '') +
-        '<span class="badge ' + (BADGE_MAT[m.status]||'badge-planejamento') + '">' + (STATUS_MAT[m.status]||'Pendente') + '</span>' +
-        '<button onclick="window.togMat(\'' + oid + '\',\'' + m.id + '\',\'' + (m.status||'pendente') + '\')" style="background:#1C2333;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#fff;cursor:pointer;">Avançar</button>' +
-        '<button onclick="window.delMat(\'' + oid + '\',\'' + m.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>' +
-      '</div>';
+          '<button onclick="window.exportarLista(\'' + oid + '\',\'' + g + '\')" style="background:#1C2333;border:none;border-radius:6px;padding:4px 10px;font-size:10px;color:#8B949E;cursor:pointer;">↑ Exportar</button>' +
+        '</div>';
+      itens.forEach(m => {
+        list += '<div class="card" style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:500;color:#fff;">' + m.nome + '</div>' +
+            '<div style="font-size:11px;color:#484F58;margin-top:2px;">' +
+              (m.fornecedor ? m.fornecedor + ' · ' : '') +
+              'Qtd: ' + (m.quantidade_prevista||'—') + ' ' + (m.unidade||'') +
+              (m.valor_unitario ? ' · ' + fmtR(m.valor_unitario) + '/un' : '') +
+            '</div>' +
+          '</div>' +
+          '<span class="badge ' + (BADGE_MAT[m.status]||'badge-planejamento') + '">' + (STATUS_MAT[m.status]||'Pendente') + '</span>' +
+          '<button onclick="window.togMat(\'' + oid + '\',\'' + m.id + '\',\'' + (m.status||'pendente') + '\')" style="background:#1C2333;border:none;border-radius:6px;padding:4px 8px;font-size:11px;color:#fff;cursor:pointer;">›</button>' +
+          '<button onclick="window.delMat(\'' + oid + '\',\'' + m.id + '\')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;padding:0 2px;">×</button>' +
+        '</div>';
+      });
+      list += '</div>';
     });
   }
+
   document.getElementById('mat-body').innerHTML =
-    '<div class="sub-header"><span class="sub-title">Lista de materiais</span>' +
-    '<div style="display:flex;gap:8px;">' +
-      '<button class="btn-secondary btn-sm" onclick="window.showMatForm(\'' + oid + '\')">+ Individual</button>' +
-      '<button class="btn-primary btn-sm" onclick="window.showMatBatch(\'' + oid + '\')">+ Lista em lote</button>' +
-    '</div></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">' +
+      '<span class="sub-title">Listas de materiais</span>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button class="btn-secondary btn-sm" onclick="window.showMatForm(\'' + oid + '\')">+ Item</button>' +
+        '<button class="btn-primary btn-sm" onclick="window.showMatBatch(\'' + oid + '\')">+ Lista em lote</button>' +
+        (mats.length ? '<button onclick="window.exportarTodas(\'' + oid + '\')" style="background:#21262D;border:none;border-radius:7px;padding:6px 12px;font-size:12px;color:#fff;cursor:pointer;">↑ Tudo</button>' : '') +
+      '</div>' +
+    '</div>' +
     '<div id="mat-form"></div>' +
     '<div id="mat-list">' + list + '</div>';
 };
+
+window.exportarLista = async (oid, grupo) => {
+  const snap = await getDocs(sub(oid,'materiais'));
+  const mats = snap.docs.map(d => ({id:d.id,...d.data()})).filter(m => (m.lista||'Geral').toUpperCase().trim() === grupo);
+  const obraSnap = await getDoc(doc(db,'obras',oid));
+  const obraNome = obraSnap.exists() ? obraSnap.data().nome : 'Obra';
+  const data = new Date().toLocaleDateString('pt-BR');
+  let texto = 'LISTA DE MATERIAIS \u2014 ' + grupo + '\n';
+  texto += 'Obra: ' + obraNome + '\n';
+  texto += 'Data: ' + data + '\n';
+  texto += '\u2500'.repeat(40) + '\n\n';
+  mats.forEach((m, i) => {
+    texto += (i+1) + '. ' + m.nome + '\n';
+    texto += '   Qtd: ' + (m.quantidade_prevista||'\u2014') + ' ' + (m.unidade||'un');
+    if (m.valor_unitario) texto += ' \u00b7 R$ ' + parseFloat(m.valor_unitario).toFixed(2).replace('.',',') + '/un';
+    if (m.fornecedor) texto += '\n   Fornecedor: ' + m.fornecedor;
+    texto += '\n';
+  });
+  texto += '\n' + '\u2500'.repeat(40) + '\nTotal: ' + mats.length + ' itens';
+  window._abrirModalExport(texto, 'Lista_' + grupo + '_' + obraNome.replace(/\s/g,'_'));
+};
+
+window.exportarTodas = async (oid) => {
+  const snap = await getDocs(sub(oid,'materiais'));
+  const mats = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const obraSnap = await getDoc(doc(db,'obras',oid));
+  const obraNome = obraSnap.exists() ? obraSnap.data().nome : 'Obra';
+  const data = new Date().toLocaleDateString('pt-BR');
+  const grupos = {};
+  mats.forEach(m => {
+    const g = (m.lista||'Geral').toUpperCase().trim();
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(m);
+  });
+  let texto = 'LISTA COMPLETA DE MATERIAIS\nObra: ' + obraNome + '\nData: ' + data + '\n' + '\u2550'.repeat(40) + '\n';
+  Object.keys(grupos).sort().forEach(g => {
+    texto += '\n\u25b8 ' + g + '\n' + '\u2500'.repeat(36) + '\n';
+    grupos[g].forEach((m, i) => {
+      texto += (i+1) + '. ' + m.nome + '\n';
+      texto += '   Qtd: ' + (m.quantidade_prevista||'\u2014') + ' ' + (m.unidade||'un');
+      if (m.valor_unitario) texto += ' \u00b7 R$ ' + parseFloat(m.valor_unitario).toFixed(2).replace('.',',') + '/un';
+      if (m.fornecedor) texto += '\n   Fornecedor: ' + m.fornecedor;
+      texto += '\n';
+    });
+  });
+  texto += '\n' + '\u2550'.repeat(40) + '\nTotal geral: ' + mats.length + ' itens';
+  window._abrirModalExport(texto, 'Materiais_' + obraNome.replace(/\s/g,'_'));
+};
+
+window._abrirModalExport = (texto, nomeArq) => {
+  const anterior = document.getElementById('modal-export');
+  if (anterior) anterior.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modal-export';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
+  const inner = document.createElement('div');
+  inner.style.cssText = 'background:#161B22;border-top:0.5px solid #30363D;border-radius:16px 16px 0 0;width:100%;max-width:600px;padding:20px;max-height:80vh;display:flex;flex-direction:column;';
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;';
+  header.innerHTML = '<span style="font-size:14px;font-weight:500;color:#fff;">\ud83d\udccb Lista para or\u00e7amento</span>';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '\u00d7';
+  closeBtn.style.cssText = 'background:transparent;border:none;color:#484F58;font-size:22px;cursor:pointer;line-height:1;';
+  closeBtn.onclick = () => modal.remove();
+  header.appendChild(closeBtn);
+  const ta = document.createElement('textarea');
+  ta.id = 'export-txt';
+  ta.readOnly = true;
+  ta.value = texto;
+  ta.style.cssText = 'flex:1;min-height:200px;background:#0D1117;border:0.5px solid #30363D;border-radius:8px;padding:12px;font-size:12px;color:#8B949E;font-family:monospace;resize:none;white-space:pre;';
+  const btns = document.createElement('div');
+  btns.style.cssText = 'display:flex;gap:10px;margin-top:14px;';
+  const btnCopy = document.createElement('button');
+  btnCopy.textContent = 'Copiar texto';
+  btnCopy.style.cssText = 'flex:1;background:#21262D;border:none;border-radius:8px;padding:11px;font-size:13px;color:#fff;cursor:pointer;';
+  btnCopy.onclick = () => { navigator.clipboard.writeText(ta.value).then(() => { btnCopy.textContent = '\u2713 Copiado!'; setTimeout(() => btnCopy.textContent = 'Copiar texto', 2000); }); };
+  const btnDown = document.createElement('button');
+  btnDown.textContent = 'Baixar .txt';
+  btnDown.style.cssText = 'flex:1;background:#1D9E75;border:none;border-radius:8px;padding:11px;font-size:13px;color:#fff;cursor:pointer;';
+  btnDown.onclick = () => { const blob = new Blob([ta.value], {type:'text/plain;charset=utf-8'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=nomeArq+'.txt'; a.click(); URL.revokeObjectURL(url); };
+  btns.appendChild(btnCopy);
+  btns.appendChild(btnDown);
+  inner.appendChild(header);
+  inner.appendChild(ta);
+  inner.appendChild(btns);
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+
 
 const MAT_UNIDADES = ['un','m²','m³','m','kg','L','saco','cx','rolo'];
 
@@ -990,6 +1105,7 @@ window.showMatForm = (oid) => {
       '<div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo material</span><button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button></div>' +
       '<div class="form-grid">' +
         '<div class="form-group form-full"><label class="form-label">Nome *</label><input class="form-input" id="mat-nome" placeholder="Ex: Tinta látex"></div>' +
+        '<div class="form-group form-full"><label class="form-label">Lista (categoria)</label><input class="form-input" id="mat-lista" placeholder="Ex: PINTURA, HIDRÁULICA, ELÉTRICA..."></div>' +
         '<div class="form-group"><label class="form-label">Unidade</label><select class="form-input" id="mat-un">' + opts + '</select></div>' +
         '<div class="form-group"><label class="form-label">Qtd prevista</label><input type="number" class="form-input" id="mat-qp" placeholder="0"></div>' +
         '<div class="form-group"><label class="form-label">Valor unitário (R$)</label><input type="number" class="form-input" id="mat-vl" placeholder="0,00"></div>' +
@@ -1007,6 +1123,7 @@ window.salvarMat = async (oid) => {
   if (!nome) return alert('Nome obrigatório');
   await addDoc(sub(oid,'materiais'), {
     nome,
+    lista: document.getElementById('mat-lista').value.trim() || 'Geral',
     unidade: document.getElementById('mat-un').value,
     quantidade_prevista: parseFloat(document.getElementById('mat-qp').value)||0,
     quantidade_real: 0,
@@ -1018,16 +1135,18 @@ window.salvarMat = async (oid) => {
   window.loadMat(oid);
 };
 
+
 // ── MODO LOTE ──
 let matBatchRows = [];
+let matBatchLista = '';
 
 window.showMatBatch = (oid) => {
+  matBatchLista = '';
   matBatchRows = [{id:0, nome:'', un:'un', qtd:'', vl:'', forn:''}];
   window.renderBatch(oid);
 };
 
 window.renderBatch = (oid) => {
-  const opts = MAT_UNIDADES.map(u => '<option value="' + u + '">' + u + '</option>').join('');
   let rows = matBatchRows.map((r, i) =>
     '<div style="display:grid;grid-template-columns:2fr 60px 80px 90px 1fr 28px;gap:6px;margin-bottom:6px;" data-row="' + i + '">' +
       '<input class="form-input" placeholder="Nome do material *" value="' + r.nome + '" oninput="matBatchRows[' + i + '].nome=this.value" style="font-size:12px;">' +
@@ -1045,6 +1164,10 @@ window.renderBatch = (oid) => {
         '<span style="font-size:14px;font-weight:500;color:#fff;">Lista em lote</span>' +
         '<button class="btn-close" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">×</button>' +
       '</div>' +
+      '<div style="margin-bottom:12px;">' +
+        '<label class="form-label" style="margin-bottom:5px;display:block;">Nome da lista (categoria) *</label>' +
+        '<input class="form-input" id="batch-lista" placeholder="Ex: PINTURA, HIDRÁULICA, ELÉTRICA..." value="' + matBatchLista + '" oninput="matBatchLista=this.value" style="max-width:340px;">' +
+      '</div>' +
       '<div style="display:grid;grid-template-columns:2fr 60px 80px 90px 1fr 28px;gap:6px;margin-bottom:8px;">' +
         '<span style="font-size:10px;color:#484F58;">Material</span>' +
         '<span style="font-size:10px;color:#484F58;">Un</span>' +
@@ -1056,17 +1179,17 @@ window.renderBatch = (oid) => {
       '<div id="batch-rows">' + rows + '</div>' +
       '<button onclick="window.addBatchRow(\'' + oid + '\')" style="background:transparent;border:0.5px dashed #30363D;border-radius:7px;width:100%;padding:8px;font-size:12px;color:#484F58;cursor:pointer;margin-top:4px;">+ Adicionar linha</button>' +
       '<div style="background:#1C2333;border-radius:8px;padding:8px 12px;margin-top:12px;font-size:11px;color:#8B949E;">' +
-        matBatchRows.length + ' material' + (matBatchRows.length!==1?'is':'') + ' na lista' +
+        matBatchRows.length + ' item' + (matBatchRows.length!==1?'s':'') + ' nesta lista' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn-secondary" onclick="document.getElementById(\'mat-form\').innerHTML=\'\'">Cancelar</button>' +
-        '<button class="btn-primary" id="batch-save-btn" onclick="window.salvarBatch(\'' + oid + '\')">Salvar todos</button>' +
+        '<button class="btn-primary" id="batch-save-btn" onclick="window.salvarBatch(\'' + oid + '\')">Salvar lista</button>' +
       '</div>' +
     '</div>';
 };
 
 function syncBatchFromDOM() {
-  // Read current values from DOM inputs BEFORE re-rendering
+  matBatchLista = document.getElementById('batch-lista')?.value || matBatchLista;
   const rowEls = document.querySelectorAll('#batch-rows [data-row]');
   rowEls.forEach(el => {
     const i = parseInt(el.dataset.row);
@@ -1100,6 +1223,7 @@ window.removeBatchRow = (i, oid) => {
 
 window.salvarBatch = async (oid) => {
   syncBatchFromDOM();
+  if (!matBatchLista.trim()) return alert('Informe o nome da lista (categoria)');
   const validos = matBatchRows.filter(r => r.nome.trim());
   if (!validos.length) return alert('Preencha ao menos um material');
   const btn = document.getElementById('batch-save-btn');
@@ -1107,6 +1231,7 @@ window.salvarBatch = async (oid) => {
   for (const r of validos) {
     await addDoc(sub(oid,'materiais'), {
       nome: r.nome.trim(),
+      lista: matBatchLista.trim().toUpperCase(),
       unidade: r.un,
       quantidade_prevista: parseFloat(r.qtd)||0,
       quantidade_real: 0,
@@ -1117,8 +1242,10 @@ window.salvarBatch = async (oid) => {
     });
   }
   matBatchRows = [];
+  matBatchLista = '';
   window.loadMat(oid);
 };
+
 
 window.togMat = async (oid, id, status) => {
   const seq = ['pendente','comprado','entregue'];
