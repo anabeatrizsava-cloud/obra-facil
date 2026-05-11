@@ -1099,15 +1099,18 @@ window.loadFin = async (obraId) => {
   saveLastObra(obraId);
   document.getElementById('fin-body').innerHTML = '<div class="loading">Carregando...</div>';
 
-  const [os,cs] = await Promise.all([
+  const [os,cs,obraSnap] = await Promise.all([
     getDocs(sub(obraId,'orcamentos')),
-    getDocs(sub(obraId,'contas'))
+    getDocs(sub(obraId,'contas')),
+    getDoc(doc(db,'obras',obraId))
   ]);
   const orcs = os.docs.map(d=>({id:d.id,...d.data()}));
   const contas = cs.docs.map(d=>({id:d.id,...d.data()}));
+  const obraFin = obraSnap.exists() ? obraSnap.data() : {};
 
   // Totais para os stat cards
-  const totOrc   = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+  const totOrcSub = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+  const totOrc = parseFloat(obraFin.valor_orcado) || totOrcSub;
   const totReal  = orcs.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
   const extras   = contas.filter(c=>c.extra===true);
   const totExtra = extras.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
