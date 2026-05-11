@@ -775,7 +775,7 @@ async function pgFin() {
   setPage('financeiro');
   const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
-  let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div>`;
+  let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento e contas por obra</div></div>`;
   if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
   else {
     html += `<div class="form-group" style="max-width:400px;margin-bottom:24px;">
@@ -790,63 +790,185 @@ async function pgFin() {
   document.getElementById('content').innerHTML = html;
 }
 
+// Estado das abas e filtros financeiro
+let finAba = 'orcamento';
+let finFiltro = 'todas';
+
 window.loadFin = async (obraId) => {
   if (!obraId) { document.getElementById('fin-body').innerHTML=''; return; }
   document.getElementById('fin-body').innerHTML = '<div class="loading">Carregando...</div>';
-  const [os,cs,ms] = await Promise.all([getDocs(sub(obraId,'orcamentos')),getDocs(sub(obraId,'contas')),getDocs(sub(obraId,'medicoes'))]);
+
+  const [os,cs] = await Promise.all([
+    getDocs(sub(obraId,'orcamentos')),
+    getDocs(sub(obraId,'contas'))
+  ]);
   const orcs = os.docs.map(d=>({id:d.id,...d.data()}));
   const contas = cs.docs.map(d=>({id:d.id,...d.data()}));
-  const meds = ms.docs.map(d=>({id:d.id,...d.data()}));
-  const totOrc = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
-  const totReal = orcs.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
+
+  // Totais para os stat cards
+  const totOrc   = orcs.reduce((s,o)=>s+(parseFloat(o.valor_previsto)||0),0);
+  const totReal  = orcs.reduce((s,o)=>s+(parseFloat(o.valor_real)||0),0);
   const totPagar = contas.filter(c=>c.tipo==='pagar').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totRec = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const totPago = contas.filter(c=>c.tipo==='pagar'&&c.status==='pago').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totRec   = contas.filter(c=>c.tipo==='receber').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totPago  = contas.filter(c=>c.tipo==='pagar'&&(c.status==='pago'||c.status==='recebido')).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totRecebido = contas.filter(c=>c.tipo==='receber'&&c.status==='recebido').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
 
-  let orcList = orcs.length ? orcs.map(o=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-    <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">${o.descricao}</div><div style="font-size:11px;color:#484F58;">${o.categoria||'—'}</div></div>
-    <div style="text-align:right;"><div style="font-size:12px;color:#484F58;">Previsto: ${fmtR(o.valor_previsto)}</div><div style="font-size:12px;color:${(o.valor_real||0)>(o.valor_previsto||0)?'#F09595':'#5DCAA5'};">Real: ${fmtR(o.valor_real)}</div></div>
-    <button onclick="window.delOrc('${obraId}','${o.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
-  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhum item orçado</div></div>';
+  // Data de hoje para calcular vencimento
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  let contaList = contas.length ? contas.map(c=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-    <div style="flex:1;">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:13px;font-weight:500;color:#fff;">${c.descricao}</span><span class="badge ${c.tipo==='pagar'?'badge-pausada':'badge-andamento'}">${c.tipo==='pagar'?'Pagar':'Receber'}</span><span class="badge ${c.status==='pago'||c.status==='recebido'?'badge-concluida':'badge-planejamento'}">${c.status||'pendente'}</span></div>
-      <div style="font-size:11px;color:#484F58;margin-top:2px;">${c.fornecedor||''}${c.data_vencimento?' · Venc: '+fmtD(c.data_vencimento):''}</div>
-    </div>
-    <div style="font-size:14px;font-weight:500;color:#fff;">${fmtR(c.valor)}</div>
-    <button onclick="window.togConta('${obraId}','${c.id}','${c.tipo}','${c.status||'pendente'}')" style="background:#1C2333;border:none;border-radius:6px;padding:4px 10px;font-size:11px;color:#fff;cursor:pointer;">${c.status==='pago'||c.status==='recebido'?'Desfazer':'Marcar pago'}</button>
-    <button onclick="window.delConta('${obraId}','${c.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
-  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhuma conta lançada</div></div>';
+  // ── STAT CARDS ──
+  let html = `<div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Total orçado</div></div>
+    <div class="stat-card"><div class="stat-val">${fmtR(totReal)}</div><div class="stat-lbl">Custo real</div><span class="stat-tag ${totReal>totOrc?'tag-warn':'tag-ok'}">${totReal>totOrc?'acima':'dentro'} do orçamento</span></div>
+    <div class="stat-card"><div class="stat-val">${fmtR(totPagar)}</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">${fmtR(totPago)} pago</span></div>
+    <div class="stat-card"><div class="stat-val">${fmtR(totRec)}</div><div class="stat-lbl">A receber</div><span class="stat-tag tag-ok">${fmtR(totRecebido)} recebido</span></div>
+  </div>`;
 
-  let medList = meds.length ? meds.map(m=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-    <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">Medição #${m.numero||'—'}</div><div style="font-size:11px;color:#484F58;">${m.data_medicao?fmtD(m.data_medicao):''}${m.observacao?' · '+m.observacao:''}</div></div>
-    <span class="badge ${m.status==='aprovada'?'badge-andamento':'badge-planejamento'}">${m.status||'pendente'}</span>
-    <div style="font-size:14px;font-weight:500;color:#fff;">${fmtR(m.valor)}</div>
-    <button onclick="window.delMed('${obraId}','${m.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;">×</button>
-  </div>`).join('') : '<div class="card"><div class="empty-state">Nenhuma medição lançada</div></div>';
+  // ── ABAS ──
+  html += `<div style="display:flex;gap:0;border-bottom:0.5px solid #21262D;margin-bottom:20px;">
+    <div onclick="window.setFinAba('orcamento','${obraId}')" style="padding:9px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid ${finAba==='orcamento'?'#1D9E75':'transparent'};color:${finAba==='orcamento'?'#fff':'#484F58'};margin-bottom:-0.5px;">Orçamento</div>
+    <div onclick="window.setFinAba('contas','${obraId}')" style="padding:9px 20px;font-size:13px;cursor:pointer;border-bottom:2px solid ${finAba==='contas'?'#1D9E75':'transparent'};color:${finAba==='contas'?'#fff':'#484F58'};margin-bottom:-0.5px;">Contas a pagar / receber</div>
+  </div>`;
 
-  document.getElementById('fin-body').innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val">${fmtR(totOrc)}</div><div class="stat-lbl">Total orçado</div></div>
-      <div class="stat-card"><div class="stat-val">${fmtR(totReal)}</div><div class="stat-lbl">Custo real</div><span class="stat-tag ${totReal>totOrc?'tag-warn':'tag-ok'}">${totReal>totOrc?'acima':'dentro'} do orçamento</span></div>
-      <div class="stat-card"><div class="stat-val">${fmtR(totPagar)}</div><div class="stat-lbl">A pagar</div><span class="stat-tag tag-warn">${fmtR(totPago)} pago</span></div>
-      <div class="stat-card"><div class="stat-val">${fmtR(totRec)}</div><div class="stat-lbl">A receber</div></div>
-    </div>
-    <div class="sub-header"><span class="sub-title">Orçamento</span><button class="btn-primary btn-sm" onclick="window.showOrcForm('${obraId}')">+ Item</button></div>
-    <div id="orc-form"></div>
-    <div id="orc-list">${orcList}</div>
-    <div class="sub-header" style="margin-top:24px;"><span class="sub-title">Contas a pagar / receber</span><button class="btn-primary btn-sm" onclick="window.showContaForm('${obraId}')">+ Conta</button></div>
-    <div id="conta-form"></div>
-    <div id="conta-list">${contaList}</div>
-    <div class="sub-header" style="margin-top:24px;"><span class="sub-title">Medições</span><button class="btn-primary btn-sm" onclick="window.showMedForm('${obraId}')">+ Medição</button></div>
-    <div id="med-form"></div>
-    <div id="med-list">${medList}</div>`;
+  html += '<div id="fin-form"></div>';
+
+  // ══ ABA ORÇAMENTO ══
+  if (finAba === 'orcamento') {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span class="sub-title">Itens do orçamento</span>
+      <button class="btn-primary btn-sm" onclick="window.showOrcForm('${obraId}')">+ Item</button>
+    </div>`;
+    if (!orcs.length) {
+      html += '<div class="card"><div class="empty-state">Nenhum item orçado</div></div>';
+    } else {
+      html += orcs.map(o=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:6px;">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;color:#fff;">${o.descricao}</div><div style="font-size:11px;color:#484F58;">${o.categoria||'—'}</div></div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:12px;color:#484F58;">Previsto: ${fmtR(o.valor_previsto)}</div>
+          <div style="font-size:12px;color:${(o.valor_real||0)>(o.valor_previsto||0)?'#F09595':'#5DCAA5'};">Real: ${fmtR(o.valor_real)}</div>
+        </div>
+        <button onclick="window.delOrc('${obraId}','${o.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;padding:0 2px;">×</button>
+      </div>`).join('');
+    }
+  }
+
+  // ══ ABA CONTAS ══
+  if (finAba === 'contas') {
+    // Filtros
+    const filtros = [
+      ['todas','Todas'],
+      ['a_vencer','A vencer'],
+      ['vencidas','Vencidas'],
+      ['pagas','Pagas/Recebidas'],
+      ['pagar','A pagar'],
+      ['receber','A receber']
+    ];
+    html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">`;
+    filtros.forEach(([val,label]) => {
+      const ativo = finFiltro === val;
+      html += `<button onclick="window.setFinFiltro('${val}','${obraId}')" style="background:${ativo?'#21262D':'transparent'};border:0.5px solid ${ativo?'#444':'#21262D'};border-radius:999px;padding:4px 12px;font-size:11px;color:${ativo?'#fff':'#484F58'};cursor:pointer;">${label}</button>`;
+    });
+    html += `</div>`;
+
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span class="sub-title">Contas</span>
+      <button class="btn-primary btn-sm" onclick="window.showContaForm('${obraId}')">+ Conta</button>
+    </div>`;
+
+    // Aplicar filtro
+    let filtradas = contas.filter(c => {
+      const venc = c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00') : null;
+      const pago = c.status === 'pago' || c.status === 'recebido';
+      if (finFiltro === 'todas')     return true;
+      if (finFiltro === 'pagar')     return c.tipo === 'pagar';
+      if (finFiltro === 'receber')   return c.tipo === 'receber';
+      if (finFiltro === 'pagas')     return pago;
+      if (finFiltro === 'vencidas')  return !pago && venc && venc < hoje;
+      if (finFiltro === 'a_vencer')  return !pago && venc && venc >= hoje;
+      return true;
+    });
+
+    // Ordenar: vencidas primeiro, depois por data asc, pagas por último
+    filtradas.sort((a,b) => {
+      const pa = a.status==='pago'||a.status==='recebido';
+      const pb = b.status==='pago'||b.status==='recebido';
+      if (pa !== pb) return pa ? 1 : -1;
+      const da = a.data_vencimento ? new Date(a.data_vencimento) : new Date('9999-01-01');
+      const db2 = b.data_vencimento ? new Date(b.data_vencimento) : new Date('9999-01-01');
+      return da - db2;
+    });
+
+    if (!filtradas.length) {
+      html += '<div class="card"><div class="empty-state">Nenhuma conta encontrada</div></div>';
+    } else {
+      filtradas.forEach(c => {
+        const venc = c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00') : null;
+        const pago = c.status === 'pago' || c.status === 'recebido';
+        const diffDias = venc ? Math.round((venc - hoje) / (1000*60*60*24)) : null;
+
+        // Definir status visual de vencimento
+        let vencLabel = '', vencColor = '', borderLeft = '';
+        if (pago) {
+          borderLeft = '3px solid #1D9E75';
+        } else if (venc) {
+          if (diffDias < 0) {
+            vencLabel = `Vencida há ${Math.abs(diffDias)}d`;
+            vencColor = '#9A4A53';
+            borderLeft = '3px solid #9A4A53';
+          } else if (diffDias === 0) {
+            vencLabel = 'Vence hoje';
+            vencColor = '#8C603E';
+            borderLeft = '3px solid #8C603E';
+          } else if (diffDias <= 7) {
+            vencLabel = `Vence em ${diffDias}d`;
+            vencColor = '#8C603E';
+            borderLeft = '3px solid #8C603E';
+          } else {
+            vencLabel = `Vence em ${diffDias}d`;
+            vencColor = '#484F58';
+            borderLeft = '3px solid #21262D';
+          }
+        } else {
+          borderLeft = '3px solid #21262D';
+        }
+
+        html += `<div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:6px;border-left:${borderLeft};${pago?'opacity:0.6;':''}">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+              <span style="font-size:13px;font-weight:500;color:#fff;">${c.descricao}</span>
+              <span style="font-size:10px;padding:2px 7px;border-radius:999px;${c.tipo==='pagar'?'background:#2A1014;color:#9A4A53;':'background:#1C2333;color:#8B949E;'}">${c.tipo==='pagar'?'Pagar':'Receber'}</span>
+              ${pago ? `<span style="font-size:10px;padding:2px 7px;border-radius:999px;background:#1A2820;color:#3FB950;">✓ ${c.status==='pago'?'Pago':'Recebido'}</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              ${c.fornecedor ? `<span style="font-size:11px;color:#484F58;">${c.fornecedor}</span>` : ''}
+              ${c.categoria ? `<span style="font-size:11px;color:#484F58;">${c.categoria}</span>` : ''}
+              ${vencLabel ? `<span style="font-size:11px;font-weight:500;color:${vencColor};">${vencLabel}</span>` : ''}
+            </div>
+          </div>
+          <div style="font-size:14px;font-weight:500;color:#fff;flex-shrink:0;">${fmtR(c.valor)}</div>
+          <button onclick="window.togConta('${obraId}','${c.id}','${c.tipo}','${c.status||'pendente'}')" style="background:#1C2333;border:none;border-radius:6px;padding:4px 8px;font-size:11px;color:#fff;cursor:pointer;flex-shrink:0;">${pago?'Desfazer':'Marcar pago'}</button>
+          <button onclick="window.delConta('${obraId}','${c.id}')" style="background:transparent;border:none;color:#484F58;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;">×</button>
+        </div>`;
+      });
+    }
+  }
+
+  document.getElementById('fin-body').innerHTML = html;
+};
+
+window.setFinAba = (aba, obraId) => {
+  finAba = aba;
+  window.loadFin(obraId);
+};
+
+window.setFinFiltro = (filtro, obraId) => {
+  finFiltro = filtro;
+  window.loadFin(obraId);
 };
 
 window.showOrcForm = (oid) => {
-  document.getElementById('orc-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo item</span><button class="btn-close" onclick="document.getElementById('orc-form').innerHTML=''">×</button></div>
+  document.getElementById('fin-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Novo item</span><button class="btn-close" onclick="document.getElementById('fin-form').innerHTML=''">×</button></div>
     <div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="orc-desc" placeholder="Ex: Mão de obra elétrica"></div>
       <div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="orc-cat" placeholder="Ex: Mão de obra"></div>
@@ -854,7 +976,7 @@ window.showOrcForm = (oid) => {
       <div class="form-group"><label class="form-label">Valor real (R$)</label><input type="number" class="form-input" id="orc-real" placeholder="0,00"></div>
     </div>
     <div class="form-actions">
-      <button class="btn-secondary" onclick="document.getElementById('orc-form').innerHTML=''">Cancelar</button>
+      <button class="btn-secondary" onclick="document.getElementById('fin-form').innerHTML=''">Cancelar</button>
       <button class="btn-primary" onclick="window.salvarOrc('${oid}')">Salvar</button>
     </div>
   </div>`;
@@ -868,7 +990,7 @@ window.salvarOrc = async (oid) => {
 window.delOrc = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'orcamentos',id)); window.loadFin(oid); };
 
 window.showContaForm = (oid) => {
-  document.getElementById('conta-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
+  document.getElementById('fin-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
     <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova conta</span><button class="btn-close" onclick="document.getElementById('conta-form').innerHTML=''">×</button></div>
     <div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição *</label><input class="form-input" id="ct-desc" placeholder="Ex: Compra de materiais"></div>
@@ -879,7 +1001,7 @@ window.showContaForm = (oid) => {
       <div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="ct-cat" placeholder="Ex: Material"></div>
     </div>
     <div class="form-actions">
-      <button class="btn-secondary" onclick="document.getElementById('conta-form').innerHTML=''">Cancelar</button>
+      <button class="btn-secondary" onclick="document.getElementById('fin-form').innerHTML=''">Cancelar</button>
       <button class="btn-primary" onclick="window.salvarConta('${oid}')">Salvar</button>
     </div>
   </div>`;
@@ -897,27 +1019,6 @@ window.togConta = async (oid,id,tipo,status) => {
 };
 window.delConta = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'contas',id)); window.loadFin(oid); };
 
-window.showMedForm = (oid) => {
-  document.getElementById('med-form').innerHTML = `<div class="form-wrap" style="margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;margin-bottom:16px;"><span style="font-size:14px;font-weight:500;color:#fff;">Nova medição</span><button class="btn-close" onclick="document.getElementById('med-form').innerHTML=''">×</button></div>
-    <div class="form-grid">
-      <div class="form-group"><label class="form-label">Número</label><input type="number" class="form-input" id="med-num" placeholder="1"></div>
-      <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="med-data"></div>
-      <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="med-val" placeholder="0,00"></div>
-      <div class="form-group"><label class="form-label">Status</label><select class="form-input" id="med-st"><option value="pendente">Pendente</option><option value="aprovada">Aprovada</option></select></div>
-      <div class="form-group form-full"><label class="form-label">Observação</label><input class="form-input" id="med-obs" placeholder="Observações"></div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-secondary" onclick="document.getElementById('med-form').innerHTML=''">Cancelar</button>
-      <button class="btn-primary" onclick="window.salvarMed('${oid}')">Salvar</button>
-    </div>
-  </div>`;
-};
-window.salvarMed = async (oid) => {
-  await addDoc(sub(oid,'medicoes'), {numero:parseInt(document.getElementById('med-num').value)||1, data_medicao:document.getElementById('med-data').value, valor:parseFloat(document.getElementById('med-val').value)||0, status:document.getElementById('med-st').value, observacao:document.getElementById('med-obs').value, created_at:serverTimestamp()});
-  window.loadFin(oid);
-};
-window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await deleteDoc(doc(db,'obras',oid,'medicoes',id)); window.loadFin(oid); };
 
 
 // ══ MATERIAIS ══
