@@ -403,7 +403,7 @@ async function renderPage(page) {
 
 // ══ DASHBOARD ══
 async function pgDash() {
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   const totOrc = obras.reduce((s,o) => s+(parseFloat(o.valor_orcado)||0), 0);
   const emAnd = obras.filter(o => o.status==='andamento').length;
@@ -437,7 +437,7 @@ window.goObras = () => { setPage('obras'); obraAberta=null; renderPage('obras');
 // ══ OBRAS ══
 async function pgObras() {
   setPage('obras');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.created_at?.seconds||0)-(a.created_at?.seconds||0));
   let html = `<div style="display:flex;justify-content:space-between;margin-bottom:20px;">
     <div><div class="page-title">Obras</div><div class="page-sub">${obras.length} obra${obras.length!==1?'s':''} cadastrada${obras.length!==1?'s':''}</div></div>
@@ -696,7 +696,7 @@ window.delTarefa = async (id) => {
 // ══ FINANCEIRO ══
 async function pgFin() {
   setPage('financeiro');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = `<div style="margin-bottom:20px;"><div class="page-title">Financeiro</div><div class="page-sub">Orçamento, contas e medições por obra</div></div>`;
   if (!obras.length) html += '<div class="card"><div class="empty-state">Nenhuma obra cadastrada</div></div>';
@@ -846,7 +846,7 @@ window.delMed = async (oid,id) => { if(!confirm('Excluir?'))return; await delete
 // ══ MATERIAIS ══
 async function pgMateriais() {
   setPage('materiais');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Materiais</div><div class="page-sub">Lista de materiais por obra (BOM)</div></div>';
   if (!obras.length) {
@@ -1034,7 +1034,7 @@ window.delMat = async (oid, id) => {
 // ══ EQUIPE ══
 async function pgEquipe() {
   setPage('equipe');
-  const snap = await getDocs(query(collection(db,'colaboradores'), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(collection(db,'colaboradores')) : query(collection(db,'colaboradores'), where('uid','==',uid()))));
   const colab = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="display:flex;justify-content:space-between;margin-bottom:20px;">' +
     '<div><div class="page-title">Equipe</div><div class="page-sub">' + colab.length + ' colaborador' + (colab.length!==1?'es':'') + ' cadastrado' + (colab.length!==1?'s':'') + '</div></div>' +
@@ -1113,7 +1113,7 @@ window.delColab = async (id) => {
 // ══ DIÁRIO DE OBRA ══
 async function pgDiario() {
   setPage('diario');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Diário de obra</div><div class="page-sub">Registro diário por obra</div></div>';
   if (!obras.length) {
@@ -1220,7 +1220,7 @@ window.delDiario = async (oid, id) => {
 // ══ DOCUMENTOS ══
 async function pgDocumentos() {
   setPage('documentos');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Documentos</div><div class="page-sub">Gestão de documentos e registro fotográfico</div></div>';
   if (!obras.length) {
@@ -1324,7 +1324,7 @@ window.delDoc = async (oid, id) => {
 // ══ OPERACIONAL ══
 async function pgOperacional() {
   setPage('operacional');
-  const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+  const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
   const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
   let html = '<div style="margin-bottom:20px;"><div class="page-title">Operacional</div><div class="page-sub">Inspeções de qualidade e não conformidades</div></div>';
   if (!obras.length) {
@@ -1497,7 +1497,7 @@ async function loadNotifications() {
   const notifs = [];
 
   try {
-    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+    const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
 
     for (const o of obras) {
@@ -1585,7 +1585,7 @@ async function initBell() {
   // Load notifications count on startup
   const hoje = new Date().toISOString().split('T')[0];
   try {
-    const snap = await getDocs(query(obrasCol(), where('uid','==',uid())));
+    const snap = await getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))));
     const obras = snap.docs.map(d => ({id:d.id,...d.data()}));
     let count = 0;
     for (const o of obras) {
@@ -1623,7 +1623,7 @@ async function pgAcessos() {
   const [usuariosSnap, acessosSnap, obrasSnap] = await Promise.all([
     getDocs(collection(db,'usuarios')),
     Promise.resolve(null),
-    getDocs(query(obrasCol(), where('uid','==',uid())))
+    getDocs((currentRole === 'admin' ? query(obrasCol()) : query(obrasCol(), where('uid','==',uid()))))
   ]);
 
   const usuarios = usuariosSnap.docs.map(d => ({id:d.id,...d.data()}));
